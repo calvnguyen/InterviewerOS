@@ -6,11 +6,9 @@
 
 ## What it does
 
-InterviewOS is built around a simple truth: job searching is a project, and projects need a workspace. Most people manage their job search across a Gmail inbox, a spreadsheet, and a folder of resume drafts with names like `resume_v7_final_FINAL.docx`. InterviewOS replaces that with one tool.
+InterviewOS is a Gmail-first job search tracker. Connect your Google account and it immediately pulls job-related emails from your inbox — recruiter outreach, application confirmations, interview invitations, follow-ups — and organises them by company into a searchable pipeline. Log applications manually, track which resume you sent to each role, and always know what to do next.
 
-Connect your Google account and InterviewOS immediately pulls job-related emails from your inbox — including recruiter outreach, application confirmations, interview schedules, and follow-ups — and organises them by company into a searchable pipeline. Get a clear next action on every open application.
-
-The workspace ships in modules. The Gmail integration module is available now. Resume management, JD comparison, and background tracking are on the roadmap.
+The focus is Gmail integration and application tracking. Everything else — resume comparison, interview prep, company research, AI recommendations — builds on top of that foundation.
 
 ---
 
@@ -18,12 +16,13 @@ The workspace ships in modules. The Gmail integration module is available now. R
 
 | Module | Status | What it covers |
 |--------|--------|----------------|
-| **Gmail integration** | Available | Connect Google account, auto-sync recruiter emails, grouped by company, next-action pipeline |
-| **Application log** | Available | Manually log applications, track stage and dates, attach notes |
-| **Resume vault** | Planned | Upload resumes, tag which resume was sent to which company |
-| **Resume vs. JD comparison** | Planned | Paste a job description, AI highlights gaps between it and your resume |
-| **Dashboard** | Planned | Unified view of applications, emails, resumes, and open actions |
-| **Background agents** | Planned | Automated follow-up tracking, interview reminder nudges, status change detection |
+| **Application tracking** | Available | Manually log applications, track stage and dates, attach notes |
+| **Gmail sync & email intelligence** | Available | Connect Google account, auto-sync recruiter emails (inbox, spam, trash), grouped and parsed by company |
+| **Resume tracking** | Planned | Upload resumes, track which resume was sent to which company, compare against job descriptions |
+| **Interview prep** | Planned | Notes, question banks, and prep checklists per application |
+| **Company research** | Planned | Company snapshots, role context, and relevant news per application |
+| **AI recommendations & next actions** | Planned | Suggested next steps, follow-up nudges, and background update detection |
+| **Dashboard & analytics** | Planned | Unified view of applications, emails, resumes, and open actions across all roles |
 
 ---
 
