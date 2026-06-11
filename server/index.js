@@ -42,8 +42,17 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // -- Middleware --
+const ALLOWED_ORIGINS = [
+  'http://localhost:5173',
+  process.env.CLIENT_URL,
+].filter(Boolean)
+
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: (origin, cb) => {
+    // allow server-to-server or same-origin requests (no Origin header)
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true)
+    cb(new Error(`CORS: ${origin} not allowed`))
+  },
   credentials: true,
 }));
 app.use(express.json());
