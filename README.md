@@ -8,9 +8,9 @@
 
 InterviewOS is built around a simple truth: job searching is a project, and projects need a workspace. Most people manage their job search across a Gmail inbox, a spreadsheet, and a folder of resume drafts with names like `resume_v7_final_FINAL.docx`. InterviewOS replaces that with one tool.
 
-Connect your Google account and InterviewOS immediately pulls job-related emails from your inbox — including recruiter outreach, application confirmations, interview schedules, and follow-ups — and organises them by company into a searchable pipeline. Log the resume you submitted for each role. Compare your resume against a job description to see the gap. Get a clear next action on every open application.
+Connect your Google account and InterviewOS immediately pulls job-related emails from your inbox — including recruiter outreach, application confirmations, interview schedules, and follow-ups — and organises them by company into a searchable pipeline. Get a clear next action on every open application.
 
-The workspace ships in modules. The Gmail integration module is available now. Resume management, AI comparison, and background tracking are on the roadmap.
+The workspace ships in modules. The Gmail integration module is available now. Resume management, JD comparison, and background tracking are on the roadmap.
 
 ---
 
@@ -34,7 +34,6 @@ The first module to ship. Sign in with Google once — authentication and Gmail 
 **What it does:**
 
 - Scans your inbox (including Spam and Trash, where recruiters sometimes land) for job-related emails
-- Groups emails by company and application
 - Parses each email and groups threads by company, computing the current stage and next action from the content
 - Surfaces the emails as pipeline cards with a five-stage Kanban board: Applied, Phone Screen, Interview, Offer, Rejected
 - Flags applications that haven't moved in 7+ days
@@ -161,7 +160,7 @@ InterviewOS never stores your Google access token. When you sign in with Google,
 
 The sync searches the inbox, Spam, and Trash folders. Recruiter emails frequently land in Spam or get deleted before you see them — searching those folders catches messages you may have missed. The Gmail query matches patterns like "thank you for applying", "interview invitation", "we'd like to schedule", and "unfortunately we've decided to move forward with other candidates".
 
-Matched emails are grouped by company. A summary is generated per company thread — what stage the application is at, the most recent communication, and what action to take. Each thread becomes one pipeline card. Re-syncing is safe — already-imported emails are deduped by Gmail message ID, so you never get duplicate cards.
+Matched emails are grouped by company. Each thread is parsed into a pipeline card showing the current stage, the most recent communication, and a computed next action. Re-syncing is safe — already-imported emails are deduped by Gmail message ID, so you never get duplicate cards.
 
 ---
 
