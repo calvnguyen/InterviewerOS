@@ -9,6 +9,35 @@ const { parseEmail } = require('../lib/parseEmail');
 
 const router = express.Router();
 
+const GENERIC_SENDER_DOMAINS = new Set([
+  'gmail', 'yahoo', 'hotmail', 'outlook', 'icloud', 'noreply', 'no-reply',
+  'notifications', 'mail', 'email', 'info', 'support', 'hello', 'team',
+]);
+
+function extractCompanyFromSender(from) {
+  if (!from) return null;
+
+  // "Waymo Recruiting <jobs@waymo.com>" → try display name first
+  const displayMatch = from.match(/^"?(.+?)"?\s*</);
+  if (displayMatch) {
+    const name = displayMatch[1]
+      .replace(/\s+(careers|recruiting|talent|hr|hiring|jobs|team|no.?reply|notifications?)$/i, '')
+      .trim();
+    if (name && name.length > 1) return name;
+  }
+
+  // Fallback: use subdomain/domain of email address
+  const emailMatch = from.match(/@([^.>@]+)/);
+  if (emailMatch) {
+    const domain = emailMatch[1].toLowerCase();
+    if (!GENERIC_SENDER_DOMAINS.has(domain)) {
+      return domain.charAt(0).toUpperCase() + domain.slice(1);
+    }
+  }
+
+  return null;
+}
+
 function sanitizeApplication(record) {
   const { user_id, ...rest } = record;
   return rest;
@@ -96,6 +125,7 @@ router.post('/sync', requireAuth, async (req, res) => {
 
     const headers = (messageData.payload && messageData.payload.headers) || [];
     const subject = (headers.find((h) => h.name === 'Subject') || {}).value || '';
+    const from = (headers.find((h) => h.name === 'From') || {}).value || '';
     const snippet = messageData.snippet || '';
     const internalDate = messageData.internalDate
       ? new Date(parseInt(messageData.internalDate, 10)).toISOString()
@@ -111,9 +141,12 @@ router.post('/sync', requireAuth, async (req, res) => {
       continue;
     }
 
+    // Derive company from From header when regex parsing misses it
+    const company = parsed.company || extractCompanyFromSender(from) || 'Unknown Company';
+
     const record = {
       user_id: req.user.id,
-      company: parsed.company || 'Unknown Company',
+      company,
       role: parsed.role || 'Unknown Role',
       stage: parsed.stage || 'applied',
       date_applied: internalDate.slice(0, 10),

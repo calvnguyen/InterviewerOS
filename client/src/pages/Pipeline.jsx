@@ -209,6 +209,7 @@ export default function Pipeline() {
   const navigate = useNavigate()
 
   const [applications, setApplications] = useState([])
+  const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
 
@@ -339,8 +340,12 @@ export default function Pipeline() {
     }
   }
 
+  const filtered = search.trim()
+    ? applications.filter(a => a.company.toLowerCase().includes(search.toLowerCase()))
+    : applications
+
   const grouped = STAGES.reduce((acc, s) => {
-    acc[s.key] = applications.filter(a => a.stage === s.key)
+    acc[s.key] = filtered.filter(a => a.stage === s.key)
     return acc
   }, {})
 
@@ -351,6 +356,13 @@ export default function Pipeline() {
         <div style={styles.navLeft}>
           <span style={styles.brandIcon}>I</span>
           <span style={styles.brandName}>InterviewOS</span>
+          <input
+            style={styles.searchInput}
+            type="text"
+            placeholder="Search by company..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
         </div>
         <div style={styles.navRight}>
           {lastSynced && (
@@ -512,6 +524,17 @@ const styles = {
     fontWeight: '700',
     fontSize: '17px',
     color: '#0f172a'
+  },
+  searchInput: {
+    marginLeft: '16px',
+    padding: '6px 12px',
+    border: '1px solid #e2e8f0',
+    borderRadius: '6px',
+    fontSize: '14px',
+    width: '220px',
+    outline: 'none',
+    color: '#0f172a',
+    background: '#f8fafc',
   },
   navRight: {
     display: 'flex',
