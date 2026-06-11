@@ -1,6 +1,6 @@
 # InterviewOS
 
-**An AI-powered job search workspace.** Log applications, track interviews, sync recruiter emails, manage resumes, and get AI-powered next-action recommendations — all in one place.
+**A job search workspace.** Log applications, track interviews, sync recruiter emails, and get a clear next action on every open role — all in one place.
 
 ---
 
@@ -18,7 +18,7 @@ The workspace ships in modules. The Gmail integration module is available now. R
 
 | Module | Status | What it covers |
 |--------|--------|----------------|
-| **Gmail integration** | Available | Connect Google account, auto-sync recruiter emails, AI-powered email summaries by company, next-action pipeline |
+| **Gmail integration** | Available | Connect Google account, auto-sync recruiter emails, grouped by company, next-action pipeline |
 | **Application log** | Available | Manually log applications, track stage and dates, attach notes |
 | **Resume vault** | Planned | Upload resumes, tag which resume was sent to which company |
 | **Resume vs. JD comparison** | Planned | Paste a job description, AI highlights gaps between it and your resume |
@@ -35,7 +35,7 @@ The first module to ship. Sign in with Google once — authentication and Gmail 
 
 - Scans your inbox (including Spam and Trash, where recruiters sometimes land) for job-related emails
 - Groups emails by company and application
-- Generates an AI-powered summary per company thread: what was said, what stage you're at, what to do next
+- Parses each email and groups threads by company, computing the current stage and next action from the content
 - Surfaces the emails as pipeline cards with a five-stage Kanban board: Applied, Phone Screen, Interview, Offer, Rejected
 - Flags applications that haven't moved in 7+ days
 - Lets you re-sync at any time to pull in new emails
@@ -131,7 +131,7 @@ cp .env.example .env   # fill in VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE
 cd ..
 ```
 
-`seed.js` prints a demo user email and password you can use to log in.
+`seed.js` creates a throwaway email/password account (`demo@interviewos.app`) for local dev testing and prints its credentials. This is separate from the Google OAuth flow used in normal sign-in.
 
 ---
 
