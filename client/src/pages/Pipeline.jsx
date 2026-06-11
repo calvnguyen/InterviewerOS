@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '../context/SessionContext.jsx'
 import { getApplications, getLastSynced, syncGmail, updateApplication } from '../lib/api.js'
+import Logo from '../components/Logo.jsx'
 import ApplicationModal from '../components/ApplicationModal.jsx'
 
 const STAGES = [
@@ -354,7 +355,7 @@ export default function Pipeline() {
       {/* Navbar */}
       <header style={styles.navbar}>
         <div style={styles.navLeft}>
-          <span style={styles.brandIcon}>I</span>
+          <Logo size={30} />
           <span style={styles.brandName}>InterviewOS</span>
           <input
             style={styles.searchInput}

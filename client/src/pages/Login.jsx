@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useSession } from '../context/SessionContext.jsx'
+import Logo from '../components/Logo.jsx'
 
 export default function Login() {
   const { signInWithGoogle } = useSession()
@@ -26,7 +27,7 @@ export default function Login() {
     <div style={styles.page}>
       <div style={styles.card}>
         <div style={styles.brand}>
-          <span style={styles.brandIcon}>I</span>
+          <Logo size={48} />
           <span style={styles.brandName}>InterviewOS</span>
         </div>
         <h1 style={styles.title}>Your job search, organised</h1>
