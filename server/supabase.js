@@ -2,16 +2,19 @@
 
 const { createClient } = require('@supabase/supabase-js');
 
-const { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } = process.env;
+const { SUPABASE_URL, SUPABASE_SECRET_KEY } = process.env;
 
-if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) {
   console.error(
-    'ERROR: SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY must be set in server/.env.'
+    'ERROR: SUPABASE_URL and SUPABASE_SECRET_KEY must be set in server/.env.'
   );
   process.exit(1);
 }
 
-// Publishable-key client — used by route handlers, respects RLS
-const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+// Service-role client — bypasses RLS. Safe here because the server validates
+// the user JWT itself via requireAuth middleware before touching the database.
+const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
 
 module.exports = { supabase };
