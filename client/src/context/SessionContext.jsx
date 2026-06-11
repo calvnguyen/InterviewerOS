@@ -7,6 +7,7 @@ export function SessionProvider({ children }) {
   const [session, setSession] = useState(null)
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [providerToken, setProviderToken] = useState(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -15,9 +16,16 @@ export function SessionProvider({ children }) {
       setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
       setSession(newSession)
       setUser(newSession?.user ?? null)
+      // provider_token is only present on SIGNED_IN after OAuth redirect; capture it in memory
+      if (event === 'SIGNED_IN' && newSession?.provider_token) {
+        setProviderToken(newSession.provider_token)
+      }
+      if (event === 'SIGNED_OUT') {
+        setProviderToken(null)
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -27,6 +35,7 @@ export function SessionProvider({ children }) {
     session,
     user,
     loading,
+    providerToken,
     signInWithGoogle: () =>
       supabase.auth.signInWithOAuth({
         provider: 'google',

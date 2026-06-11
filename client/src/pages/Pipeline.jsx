@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '../context/SessionContext.jsx'
 import { getApplications, getLastSynced, syncGmail, updateApplication } from '../lib/api.js'
-import { supabase } from '../lib/supabase.js'
 import ApplicationModal from '../components/ApplicationModal.jsx'
 
 const STAGES = [
@@ -206,7 +205,7 @@ const cardStyles = {
 }
 
 export default function Pipeline() {
-  const { signOut, user } = useSession()
+  const { signOut, user, providerToken } = useSession()
   const navigate = useNavigate()
 
   const [applications, setApplications] = useState([])
@@ -225,8 +224,6 @@ export default function Pipeline() {
   // Auto-sync on first mount using the Google provider_token from the Supabase session
   useEffect(() => {
     async function autoSync() {
-      const { data } = await supabase.auth.getSession()
-      const providerToken = data.session?.provider_token
       if (providerToken) {
         setSyncing(true)
         setSyncMessage('Scanning your inbox...')
@@ -247,7 +244,7 @@ export default function Pipeline() {
       }
     }
     autoSync()
-  }, []) // run once on mount
+  }, [providerToken]) // re-run when token arrives from context after OAuth redirect
 
   const loadApplications = useCallback(async () => {
     setLoadError('')
@@ -280,8 +277,6 @@ export default function Pipeline() {
     setSyncError('')
     setSyncMessage('')
     try {
-      const { data } = await supabase.auth.getSession()
-      const providerToken = data.session?.provider_token
       if (!providerToken) {
         setSyncError('Gmail access expired. Please sign out and sign back in with Google.')
         setSyncing(false)
