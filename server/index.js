@@ -7,20 +7,14 @@ const fs = require('fs');
 // 1. Try server/.env (preferred)
 // 2. Fall back to project root .env
 // 3. If neither exists, exit with a clear error
+// Load .env file for local dev; in production (Railway) env vars are injected into process.env directly
 const serverEnvPath = path.join(__dirname, '.env');
 const rootEnvPath = path.join(__dirname, '..', '.env');
 
 if (fs.existsSync(serverEnvPath)) {
   require('dotenv').config({ path: serverEnvPath });
 } else if (fs.existsSync(rootEnvPath)) {
-  // Copy root .env to server/.env and load it
-  fs.copyFileSync(rootEnvPath, serverEnvPath);
-  require('dotenv').config({ path: serverEnvPath });
-} else {
-  console.error(
-    'ERROR: server/.env is missing. Copy .env.example to server/.env and fill in your Supabase credentials.'
-  );
-  process.exit(1);
+  require('dotenv').config({ path: rootEnvPath });
 }
 
 // Validate required env vars
