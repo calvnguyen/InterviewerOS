@@ -154,6 +154,27 @@ pkill -f "node index.js" && pkill -f "vite"
 
 ---
 
+## Testing
+
+End-to-end tests use [Playwright](https://playwright.dev) and live in `tests/`. The dev server starts automatically when you run the suite.
+
+```bash
+# Run all tests (headless)
+npm test
+
+# Interactive UI mode
+npm run test:ui
+
+# View last HTML report
+npm run test:report
+```
+
+Tests require `client/.env` to be populated (Supabase URL + publishable key) so the React app renders. Copy `client/.env.example` → `client/.env` and fill in the values before running.
+
+The Playwright MCP server is also wired into `.mcp.json` so Claude Code agents can drive the browser directly for exploratory testing and QA automation.
+
+---
+
 ## How Gmail sync works
 
 InterviewerOS never stores your Google access token. When you sign in with Google, Supabase issues you a session that includes a short-lived `provider_token` — a read-only Gmail access token. When you trigger a sync, the frontend passes that token to the backend, the backend calls the Gmail API to fetch recent job-related emails, parses them, writes the results to Supabase, and discards the token. Your Gmail credentials never leave the current session.
@@ -214,6 +235,10 @@ intervieweros/
 │   │       ├── ApplicationModal.jsx
 │   │       └── ErrorBoundary.jsx
 │   └── index.html
+│
+├── tests/                  ← Playwright E2E tests
+│   └── smoke.spec.js
+├── playwright.config.js
 │
 └── docs/                   ← generated spec files
     ├── scope.md
