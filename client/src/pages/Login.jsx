@@ -28,7 +28,7 @@ export default function Login() {
       <div style={styles.card}>
         <div style={styles.brand}>
           <Logo size={48} />
-          <span style={styles.brandName}>InterviewOS</span>
+          <span style={styles.brandName}>InterviewerOS</span>
         </div>
         <h1 style={styles.title}>Your job search, organised</h1>
         <p style={styles.subtitle}>
@@ -57,7 +57,7 @@ export default function Login() {
         </button>
 
         <p style={styles.note}>
-          InterviewOS requests read-only Gmail access to import your job application emails.
+          InterviewerOS requests read-only Gmail access to import your job application emails.
           Your emails are never stored or shared.
         </p>
       </div>

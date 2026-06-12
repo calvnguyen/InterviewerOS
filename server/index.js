@@ -77,5 +77,5 @@ app.use((err, req, res, next) => {
 
 // -- Start server --
 app.listen(PORT, () => {
-  console.log(`InterviewOS server listening on port ${PORT}`);
+  console.log(`InterviewerOS server listening on port ${PORT}`);
 });

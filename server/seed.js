@@ -22,7 +22,7 @@ if (fs.existsSync(serverEnvPath)) {
 const { createClient } = require('@supabase/supabase-js');
 const { migrate } = require('./migrate');
 
-const DEMO_EMAIL = 'demo@interviewos.app';
+const DEMO_EMAIL = 'demo@intervieweros.app';
 const DEMO_PASSWORD = 'Demo1234!';
 
 function daysAgo(n) {

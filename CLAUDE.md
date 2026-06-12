@@ -1,6 +1,6 @@
-# CLAUDE.md — InterviewOS
+# CLAUDE.md — InterviewerOS
 
-InterviewOS is an AI-powered job search workspace. Users sign in with Google, which grants Gmail read access in a single OAuth flow. The app scans their inbox for job-related emails and populates a Kanban pipeline. Users can also add applications manually or via email paste.
+InterviewerOS is an AI-powered job search workspace. Users sign in with Google, which grants Gmail read access in a single OAuth flow. The app scans their inbox for job-related emails and populates a Kanban pipeline. Users can also add applications manually or via email paste.
 
 ---
 

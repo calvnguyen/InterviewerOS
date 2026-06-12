@@ -356,7 +356,7 @@ export default function Pipeline() {
       <header style={styles.navbar}>
         <div style={styles.navLeft}>
           <Logo size={30} />
-          <span style={styles.brandName}>InterviewOS</span>
+          <span style={styles.brandName}>InterviewerOS</span>
           <input
             style={styles.searchInput}
             type="text"

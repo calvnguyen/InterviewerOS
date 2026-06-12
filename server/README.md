@@ -1,6 +1,6 @@
-# InterviewOS — server
+# InterviewerOS — server
 
-Express backend for InterviewOS. Runs on port 3001.
+Express backend for InterviewerOS. Runs on port 3001.
 
 ## Setup
 
@@ -30,7 +30,7 @@ node seed.js
 
 This command creates the database tables automatically (runs `migrate.js` first), then creates a demo user and populates 8 sample applications across all pipeline stages. The demo user's credentials are printed to stdout on completion.
 
-Demo credentials: `demo@interviewos.app` / `Demo1234!`
+Demo credentials: `demo@intervieweros.app` / `Demo1234!`
 
 Note: the demo user logs in with email/password. Real users will use Google Sign-In.
 

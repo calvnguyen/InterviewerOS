@@ -6,7 +6,7 @@
 
 ## What it does
 
-InterviewOS is a Gmail-first job search tracker. Connect your Google account and it immediately pulls job-related emails from your inbox — recruiter outreach, application confirmations, interview invitations, follow-ups — and organises them by company into a searchable pipeline. Log applications manually, track which resume you sent to each role, and always know what to do next.
+InterviewerOS is a Gmail-first job search tracker. Connect your Google account and it immediately pulls job-related emails from your inbox — recruiter outreach, application confirmations, interview invitations, follow-ups — and organises them by company into a searchable pipeline. Log applications manually, track which resume you sent to each role, and always know what to do next.
 
 The focus is Gmail integration and application tracking. Everything else — resume comparison, interview prep, company research, AI recommendations — builds on top of that foundation.
 
@@ -129,7 +129,7 @@ cp .env.example .env   # fill in VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE
 cd ..
 ```
 
-`seed.js` creates a throwaway email/password account (`demo@interviewos.app`) for local dev testing and prints its credentials. This is separate from the Google OAuth flow used in normal sign-in.
+`seed.js` creates a throwaway email/password account (`demo@intervieweros.app`) for local dev testing and prints its credentials. This is separate from the Google OAuth flow used in normal sign-in.
 
 ---
 
@@ -155,7 +155,7 @@ pkill -f "node index.js" && pkill -f "vite"
 
 ## How Gmail sync works
 
-InterviewOS never stores your Google access token. When you sign in with Google, Supabase issues you a session that includes a short-lived `provider_token` — a read-only Gmail access token. When you trigger a sync, the frontend passes that token to the backend, the backend calls the Gmail API to fetch recent job-related emails, parses them, writes the results to Supabase, and discards the token. Your Gmail credentials never leave the current session.
+InterviewerOS never stores your Google access token. When you sign in with Google, Supabase issues you a session that includes a short-lived `provider_token` — a read-only Gmail access token. When you trigger a sync, the frontend passes that token to the backend, the backend calls the Gmail API to fetch recent job-related emails, parses them, writes the results to Supabase, and discards the token. Your Gmail credentials never leave the current session.
 
 The sync searches the inbox, Spam, and Trash folders. Recruiter emails frequently land in Spam or get deleted before you see them — searching those folders catches messages you may have missed. The Gmail query matches patterns like "thank you for applying", "interview invitation", "we'd like to schedule", and "unfortunately we've decided to move forward with other candidates".
 
@@ -182,7 +182,7 @@ The backend exposes a JSON REST API at `http://localhost:3001/api`. All endpoint
 ## Project structure
 
 ```
-interviewos/
+intervieweros/
 ├── server/                 ← Express API
 │   ├── index.js            entry point (port 3001)
 │   ├── middleware/
