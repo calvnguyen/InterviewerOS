@@ -50,13 +50,14 @@ The first module to ship. Sign in with Google once — authentication and Gmail 
 
 ## Tech stack
 
-| Layer    | Technology                          |
-| -------- | ----------------------------------- |
-| Frontend | React + Vite                        |
-| Backend  | Express (Node.js)                   |
-| Database | Supabase (Postgres)                 |
-| Auth     | Supabase Auth — Google OAuth2       |
-| Testing  | Playwright                          |
+| Layer        | Technology                          |
+| ------------ | ----------------------------------- |
+| Frontend     | React + Vite                        |
+| UI           | shadcn/ui (Radix UI + Tailwind CSS) |
+| Backend      | Express (Node.js)                   |
+| Database     | Supabase (Postgres)                 |
+| Auth         | Supabase Auth — Google OAuth2       |
+| Testing      | Playwright                          |
 
 ---
 

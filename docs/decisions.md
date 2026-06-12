@@ -69,6 +69,11 @@ We studied CareerSync, an open-source Gmail-connected job tracker, and built a p
 - **We chose:** React (Vite) on the frontend, Express on the backend, Supabase for Postgres and auth.
 - **Reason:** Sprint Zero v1 ships one stack. Users bring their own Supabase project. Five minutes of setup, no server-side maintenance.
 
+### UI library: shadcn/ui + Tailwind CSS
+
+- **We chose:** shadcn/ui with Tailwind CSS, replacing hand-written inline style objects.
+- **Reason:** The growing component surface (modals, selects, badges, alerts) benefits from a consistent, accessible component system. shadcn/ui gives us copy-owned components — no runtime library lock-in — built on Radix UI primitives with full keyboard navigation and ARIA support out of the box. Tailwind replaces ~600 lines of inline style objects with composable utility classes. The indigo color token (`#6366f1`) is preserved via CSS variables so the visual design is unchanged. Future components can be added with `npx shadcn@latest add <component>`.
+
 ### Google Sign-In as the single auth and Gmail access mechanism
 
 - **We chose:** `supabase.auth.signInWithOAuth({ provider: 'google' })` with `scopes: 'https://www.googleapis.com/auth/gmail.readonly'`. One consent screen, one session, no separate "Connect Gmail" step. The Supabase session's `provider_token` is the Google access token for Gmail API calls.

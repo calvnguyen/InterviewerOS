@@ -1,12 +1,30 @@
 import { useState } from 'react'
 import { createApplication, updateApplication, deleteApplication, parseEmail } from '../lib/api.js'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 const STAGES = [
   { value: 'applied', label: 'Applied' },
   { value: 'phone_screen', label: 'Phone Screen' },
   { value: 'interview', label: 'Interview' },
   { value: 'offer', label: 'Offer' },
-  { value: 'rejected', label: 'Rejected' }
+  { value: 'rejected', label: 'Rejected' },
 ]
 
 export default function ApplicationModal({ application, onClose, onSave, onDelete }) {
@@ -53,7 +71,7 @@ export default function ApplicationModal({ application, onClose, onSave, onDelet
       } else {
         setParseMessage('Could not extract details. Please fill in manually.')
       }
-    } catch (err) {
+    } catch {
       setParseMessage('Extraction failed. Please fill in manually.')
     } finally {
       setParsing(false)
@@ -76,7 +94,7 @@ export default function ApplicationModal({ application, onClose, onSave, onDelet
       role: role.trim(),
       stage,
       date_applied: dateApplied,
-      notes: notes.trim()
+      notes: notes.trim(),
     }
 
     try {
@@ -87,7 +105,7 @@ export default function ApplicationModal({ application, onClose, onSave, onDelet
         result = await createApplication(payload)
       }
       onSave(result.application)
-    } catch (err) {
+    } catch {
       setSaveError('Could not save application. Please try again.')
     } finally {
       setSaving(false)
@@ -100,95 +118,105 @@ export default function ApplicationModal({ application, onClose, onSave, onDelet
     try {
       await deleteApplication(application.id)
       onDelete(application.id)
-    } catch (err) {
+    } catch {
       setDeleteError('Could not delete application. Please try again.')
       setDeleting(false)
     }
   }
 
   return (
-    <div style={styles.overlay} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div style={styles.modal} role="dialog" aria-modal="true" aria-label={isEdit ? 'Edit application' : 'Add application'}>
-        <div style={styles.header}>
-          <h2 style={styles.title}>{isEdit ? 'Edit Application' : 'Add Application'}</h2>
-          <button style={styles.closeBtn} onClick={onClose} aria-label="Close modal">&#x2715;</button>
-        </div>
+    <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent
+        className="max-w-[560px] max-h-[90vh] overflow-y-auto"
+        aria-label={isEdit ? 'Edit application' : 'Add application'}
+      >
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Edit Application' : 'Add Application'}</DialogTitle>
+        </DialogHeader>
 
         <form onSubmit={handleSave} noValidate>
-          <div style={styles.body}>
+          <div className="flex flex-col gap-4">
             {saveError && (
-              <div style={styles.errorBox} role="alert">{saveError}</div>
+              <Alert variant="destructive">
+                <AlertDescription>{saveError}</AlertDescription>
+              </Alert>
             )}
 
-            <div style={styles.field}>
-              <label style={styles.label}>Company <span style={styles.required}>*</span></label>
-              <input
-                type="text"
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="company">
+                Company <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="company"
                 name="company"
                 data-testid="company-input"
                 value={company}
                 onChange={e => { setCompany(e.target.value); setFieldErrors(p => ({ ...p, company: undefined })) }}
-                style={{ ...styles.input, ...(fieldErrors.company ? styles.inputError : {}) }}
+                className={fieldErrors.company ? 'border-destructive' : ''}
                 placeholder="e.g. Acme Corp"
                 disabled={saving}
               />
-              {fieldErrors.company && <span style={styles.fieldError}>{fieldErrors.company}</span>}
+              {fieldErrors.company && (
+                <span className="text-xs text-destructive">{fieldErrors.company}</span>
+              )}
             </div>
 
-            <div style={styles.field}>
-              <label style={styles.label}>Role <span style={styles.required}>*</span></label>
-              <input
-                type="text"
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="role">
+                Role <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="role"
                 name="role"
                 data-testid="role-input"
                 value={role}
                 onChange={e => { setRole(e.target.value); setFieldErrors(p => ({ ...p, role: undefined })) }}
-                style={{ ...styles.input, ...(fieldErrors.role ? styles.inputError : {}) }}
+                className={fieldErrors.role ? 'border-destructive' : ''}
                 placeholder="e.g. Product Manager"
                 disabled={saving}
               />
-              {fieldErrors.role && <span style={styles.fieldError}>{fieldErrors.role}</span>}
+              {fieldErrors.role && (
+                <span className="text-xs text-destructive">{fieldErrors.role}</span>
+              )}
             </div>
 
-            <div style={styles.row}>
-              <div style={{ ...styles.field, flex: 1 }}>
-                <label style={styles.label}>Stage</label>
-                <select
-                  name="stage"
-                  data-testid="stage-select"
-                  value={stage}
-                  onChange={e => setStage(e.target.value)}
-                  style={styles.select}
-                  disabled={saving}
-                >
-                  {STAGES.map(s => (
-                    <option key={s.value} value={s.value}>{s.label}</option>
-                  ))}
-                </select>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="stage">Stage</Label>
+                <Select value={stage} onValueChange={setStage} disabled={saving}>
+                  <SelectTrigger id="stage" data-testid="stage-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STAGES.map(s => (
+                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div style={{ ...styles.field, flex: 1 }}>
-                <label style={styles.label}>Date Applied</label>
-                <input
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="date_applied">Date Applied</Label>
+                <Input
+                  id="date_applied"
                   type="date"
                   name="date_applied"
                   data-testid="date-applied-input"
                   value={dateApplied}
                   onChange={e => setDateApplied(e.target.value)}
-                  style={styles.input}
                   disabled={saving}
                 />
               </div>
             </div>
 
-            <div style={styles.field}>
-              <label style={styles.label}>Notes</label>
-              <textarea
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
                 name="notes"
                 data-testid="notes-input"
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
-                style={styles.textarea}
                 placeholder="Optional — interview feedback, contact name, etc."
                 rows={3}
                 disabled={saving}
@@ -196,293 +224,100 @@ export default function ApplicationModal({ application, onClose, onSave, onDelet
             </div>
 
             {!isEdit && (
-              <div style={styles.emailSection}>
-                <p style={styles.emailSectionLabel}>Or paste email content to pre-fill</p>
-                <textarea
+              <div className="border-t border-border pt-4 flex flex-col gap-2.5">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Or paste email content to pre-fill
+                </p>
+                <Textarea
                   data-testid="email-paste-input"
                   value={emailText}
                   onChange={e => setEmailText(e.target.value)}
-                  style={styles.textarea}
                   placeholder="Paste the email text here..."
                   rows={4}
                   disabled={parsing || saving}
                 />
                 {parseMessage && (
-                  <p style={styles.parseMessage}>{parseMessage}</p>
+                  <p className="text-xs text-primary">{parseMessage}</p>
                 )}
-                <button
+                <Button
                   type="button"
                   data-testid="extract-button"
                   onClick={handleExtract}
                   disabled={parsing || !emailText.trim() || saving}
-                  style={{ ...styles.secondaryBtn, ...(parsing || !emailText.trim() ? styles.btnDisabled : {}) }}
+                  variant="secondary"
+                  size="sm"
+                  className="self-start"
                 >
                   {parsing ? 'Extracting...' : 'Extract'}
-                </button>
+                </Button>
               </div>
             )}
           </div>
 
-          <div style={styles.footer}>
+          <div className="flex items-center justify-between gap-3 mt-6 pt-4 border-t border-border">
             {isEdit && (
-              <div style={styles.deleteSection}>
+              <div className="flex-1">
                 {!showDeleteConfirm ? (
-                  <button
+                  <Button
                     type="button"
                     data-testid="delete-application-button"
                     onClick={() => setShowDeleteConfirm(true)}
-                    style={styles.deleteBtn}
+                    variant="outline"
+                    size="sm"
+                    className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
                     disabled={saving || deleting}
                   >
                     Delete
-                  </button>
+                  </Button>
                 ) : (
-                  <div style={styles.confirmDelete}>
-                    <span style={styles.confirmText}>Are you sure you want to delete this application?</span>
-                    <button
+                  <div className="flex items-center flex-wrap gap-2">
+                    <span className="text-sm text-muted-foreground">Are you sure?</span>
+                    <Button
                       type="button"
                       data-testid="confirm-delete-button"
                       onClick={handleDelete}
                       disabled={deleting}
-                      style={{ ...styles.deleteBtn, marginLeft: '8px' }}
+                      variant="destructive"
+                      size="sm"
                     >
                       {deleting ? 'Deleting...' : 'Yes, delete'}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
                       onClick={() => setShowDeleteConfirm(false)}
-                      style={styles.cancelBtn}
+                      variant="outline"
+                      size="sm"
                     >
                       Cancel
-                    </button>
-                    {deleteError && <span style={styles.fieldError}>{deleteError}</span>}
+                    </Button>
+                    {deleteError && (
+                      <span className="text-xs text-destructive">{deleteError}</span>
+                    )}
                   </div>
                 )}
               </div>
             )}
 
-            <div style={styles.saveSection}>
-              <button
+            <div className="flex gap-2 ml-auto">
+              <Button
                 type="button"
                 onClick={onClose}
-                style={styles.cancelBtn}
+                variant="outline"
                 disabled={saving || deleting}
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
                 data-testid={isEdit ? 'save-application' : 'add-application-button'}
                 disabled={saving || deleting}
-                style={{ ...styles.saveBtn, ...(saving ? styles.btnDisabled : {}) }}
               >
                 {saving ? 'Saving...' : 'Save'}
-              </button>
+              </Button>
             </div>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
-}
-
-const styles = {
-  overlay: {
-    position: 'fixed',
-    inset: 0,
-    background: 'rgba(15,23,42,0.5)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-    padding: '20px'
-  },
-  modal: {
-    background: '#fff',
-    borderRadius: '12px',
-    width: '100%',
-    maxWidth: '560px',
-    maxHeight: '90vh',
-    overflowY: 'auto',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
-  },
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '20px 24px',
-    borderBottom: '1px solid #e2e8f0'
-  },
-  title: {
-    fontSize: '18px',
-    fontWeight: '700',
-    color: '#0f172a'
-  },
-  closeBtn: {
-    background: 'none',
-    border: 'none',
-    fontSize: '18px',
-    cursor: 'pointer',
-    color: '#64748b',
-    lineHeight: 1,
-    padding: '4px'
-  },
-  body: {
-    padding: '24px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px'
-  },
-  field: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px'
-  },
-  row: {
-    display: 'flex',
-    gap: '12px'
-  },
-  label: {
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#374151',
-    textTransform: 'uppercase',
-    letterSpacing: '0.04em'
-  },
-  required: {
-    color: '#ef4444'
-  },
-  input: {
-    padding: '10px 12px',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    fontSize: '14px',
-    color: '#0f172a',
-    outline: 'none',
-    background: '#fff',
-    width: '100%'
-  },
-  inputError: {
-    borderColor: '#ef4444'
-  },
-  select: {
-    padding: '10px 12px',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    fontSize: '14px',
-    color: '#0f172a',
-    background: '#fff',
-    width: '100%',
-    cursor: 'pointer'
-  },
-  textarea: {
-    padding: '10px 12px',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    fontSize: '14px',
-    color: '#0f172a',
-    outline: 'none',
-    resize: 'vertical',
-    fontFamily: 'inherit',
-    background: '#fff',
-    width: '100%'
-  },
-  fieldError: {
-    fontSize: '13px',
-    color: '#ef4444'
-  },
-  errorBox: {
-    background: '#fef2f2',
-    border: '1px solid #fecaca',
-    borderRadius: '8px',
-    padding: '12px 16px',
-    color: '#dc2626',
-    fontSize: '14px'
-  },
-  emailSection: {
-    borderTop: '1px solid #e2e8f0',
-    paddingTop: '16px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px'
-  },
-  emailSectionLabel: {
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#64748b',
-    textTransform: 'uppercase',
-    letterSpacing: '0.04em'
-  },
-  parseMessage: {
-    fontSize: '13px',
-    color: '#6366f1'
-  },
-  footer: {
-    padding: '16px 24px',
-    borderTop: '1px solid #e2e8f0',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '12px'
-  },
-  deleteSection: {
-    flex: 1
-  },
-  saveSection: {
-    display: 'flex',
-    gap: '10px',
-    alignItems: 'center'
-  },
-  confirmDelete: {
-    display: 'flex',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: '8px'
-  },
-  confirmText: {
-    fontSize: '13px',
-    color: '#374151'
-  },
-  saveBtn: {
-    padding: '9px 20px',
-    background: '#6366f1',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer'
-  },
-  cancelBtn: {
-    padding: '9px 16px',
-    background: 'none',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    fontSize: '14px',
-    color: '#374151',
-    cursor: 'pointer'
-  },
-  deleteBtn: {
-    padding: '9px 16px',
-    background: 'none',
-    border: '1px solid #ef4444',
-    borderRadius: '8px',
-    fontSize: '14px',
-    color: '#ef4444',
-    cursor: 'pointer'
-  },
-  secondaryBtn: {
-    alignSelf: 'flex-start',
-    padding: '8px 16px',
-    background: '#f1f5f9',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    fontSize: '14px',
-    color: '#374151',
-    cursor: 'pointer'
-  },
-  btnDisabled: {
-    opacity: 0.5,
-    cursor: 'not-allowed'
-  }
 }

@@ -4,29 +4,32 @@ import { useSession } from '../context/SessionContext.jsx'
 import { getApplications, getLastSynced, syncGmail, updateApplication } from '../lib/api.js'
 import Logo from '../components/Logo.jsx'
 import ApplicationModal from '../components/ApplicationModal.jsx'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 
 const STAGES = [
   { key: 'applied', label: 'Applied' },
   { key: 'phone_screen', label: 'Phone Screen' },
   { key: 'interview', label: 'Interview' },
   { key: 'offer', label: 'Offer' },
-  { key: 'rejected', label: 'Rejected' }
+  { key: 'rejected', label: 'Rejected' },
 ]
 
-const STAGE_COLORS = {
-  applied: '#6366f1',
-  phone_screen: '#f59e0b',
-  interview: '#3b82f6',
-  offer: '#10b981',
-  rejected: '#ef4444'
+const STAGE_DOT_CLASSES = {
+  applied: 'bg-indigo-500',
+  phone_screen: 'bg-amber-500',
+  interview: 'bg-blue-500',
+  offer: 'bg-green-500',
+  rejected: 'bg-red-500',
 }
 
-const NEXT_ACTION_COLORS = {
-  'Follow up': '#f59e0b',
-  'Awaiting response': '#6366f1',
-  'Prepare for call': '#3b82f6',
-  'Prepare for interview': '#3b82f6',
-  'Respond to offer': '#10b981'
+const NEXT_ACTION_CLASSES = {
+  'Follow up': 'bg-amber-100 text-amber-700 border-amber-200',
+  'Awaiting response': 'bg-indigo-100 text-indigo-700 border-indigo-200',
+  'Prepare for call': 'bg-blue-100 text-blue-700 border-blue-200',
+  'Prepare for interview': 'bg-blue-100 text-blue-700 border-blue-200',
+  'Respond to offer': 'bg-green-100 text-green-700 border-green-200',
 }
 
 function formatDate(dateStr) {
@@ -38,48 +41,51 @@ function formatDate(dateStr) {
 function ApplicationCard({ app, onEdit, onStageChange, stageChanging }) {
   const [moveOpen, setMoveOpen] = useState(false)
   const otherStages = STAGES.filter(s => s.key !== app.stage)
-  const actionColor = NEXT_ACTION_COLORS[app.next_action] || '#64748b'
 
   return (
     <div
-      style={{
-        ...cardStyles.card,
-        borderLeft: app.stale ? '3px solid #f59e0b' : '3px solid transparent'
-      }}
+      className={`bg-white rounded-xl p-3.5 shadow-sm relative transition-shadow hover:shadow-md cursor-default ${
+        app.stale ? 'border-l-[3px] border-amber-400' : 'border-l-[3px] border-transparent'
+      }`}
       title={app.stale ? 'No update in 7+ days' : undefined}
     >
       {app.stale && (
-        <div style={cardStyles.staleBadge} title="No update in 7+ days">
+        <Badge className="absolute top-2.5 right-2.5 text-[10px] bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200 uppercase tracking-wide">
           Needs attention
-        </div>
+        </Badge>
       )}
 
-      <div style={cardStyles.company}>{app.company}</div>
-      <div style={cardStyles.role}>{app.role}</div>
-      <div style={cardStyles.date}>{formatDate(app.date_applied)}</div>
+      <div className="font-bold text-[15px] text-slate-900 mb-0.5 pr-24 leading-tight">{app.company}</div>
+      <div className="text-[13px] text-slate-500 mb-1.5">{app.role}</div>
+      <div className="text-[12px] text-slate-400 mb-2">{formatDate(app.date_applied)}</div>
 
       {app.next_action && (
-        <div style={{ ...cardStyles.nextAction, background: actionColor + '18', color: actionColor }}>
+        <Badge
+          variant="outline"
+          className={`text-[11px] font-semibold mb-2.5 ${NEXT_ACTION_CLASSES[app.next_action] || 'bg-slate-100 text-slate-600 border-slate-200'}`}
+        >
           {app.next_action}
-        </div>
+        </Badge>
       )}
 
-      <div style={cardStyles.actions}>
-        <div style={cardStyles.moveWrapper}>
-          <button
-            style={cardStyles.moveBtn}
+      <div className="flex gap-2 items-center flex-wrap">
+        <div className="relative">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs px-2.5"
             onClick={() => setMoveOpen(o => !o)}
             disabled={stageChanging}
             data-testid={`move-btn-${app.id}`}
           >
             Move to ▾
-          </button>
+          </Button>
           {moveOpen && (
-            <div style={cardStyles.dropdown}>
+            <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 min-w-[140px] overflow-hidden">
               {otherStages.map(s => (
                 <button
                   key={s.key}
-                  style={cardStyles.dropdownItem}
+                  className="w-full px-3.5 py-2 text-left text-[13px] text-slate-700 hover:bg-slate-50 border-none bg-transparent cursor-pointer"
                   onClick={() => {
                     setMoveOpen(false)
                     onStageChange(app.id, s.key, app.stage)
@@ -92,121 +98,22 @@ function ApplicationCard({ app, onEdit, onStageChange, stageChanging }) {
           )}
         </div>
 
-        <button
-          style={cardStyles.editBtn}
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs px-2.5"
           onClick={() => onEdit(app)}
           data-testid={`edit-btn-${app.id}`}
         >
           Edit
-        </button>
+        </Button>
       </div>
     </div>
   )
 }
 
-const cardStyles = {
-  card: {
-    background: '#fff',
-    borderRadius: '10px',
-    padding: '14px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-    marginBottom: '10px',
-    position: 'relative',
-    transition: 'box-shadow 0.15s'
-  },
-  staleBadge: {
-    position: 'absolute',
-    top: '10px',
-    right: '10px',
-    fontSize: '10px',
-    fontWeight: '700',
-    color: '#92400e',
-    background: '#fef3c7',
-    borderRadius: '4px',
-    padding: '2px 6px',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em'
-  },
-  company: {
-    fontWeight: '700',
-    fontSize: '15px',
-    color: '#0f172a',
-    marginBottom: '2px',
-    paddingRight: '80px'
-  },
-  role: {
-    fontSize: '13px',
-    color: '#475569',
-    marginBottom: '6px'
-  },
-  date: {
-    fontSize: '12px',
-    color: '#94a3b8',
-    marginBottom: '8px'
-  },
-  nextAction: {
-    display: 'inline-block',
-    fontSize: '11px',
-    fontWeight: '600',
-    borderRadius: '20px',
-    padding: '3px 10px',
-    marginBottom: '10px'
-  },
-  actions: {
-    display: 'flex',
-    gap: '8px',
-    alignItems: 'center',
-    flexWrap: 'wrap'
-  },
-  moveWrapper: {
-    position: 'relative'
-  },
-  moveBtn: {
-    fontSize: '12px',
-    padding: '5px 10px',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    background: '#f8fafc',
-    cursor: 'pointer',
-    color: '#374151'
-  },
-  dropdown: {
-    position: 'absolute',
-    top: '100%',
-    left: 0,
-    marginTop: '4px',
-    background: '#fff',
-    border: '1px solid #e2e8f0',
-    borderRadius: '8px',
-    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-    zIndex: 100,
-    minWidth: '140px',
-    overflow: 'hidden'
-  },
-  dropdownItem: {
-    display: 'block',
-    width: '100%',
-    padding: '9px 14px',
-    border: 'none',
-    background: 'none',
-    textAlign: 'left',
-    fontSize: '13px',
-    color: '#374151',
-    cursor: 'pointer'
-  },
-  editBtn: {
-    fontSize: '12px',
-    padding: '5px 10px',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    background: '#f8fafc',
-    cursor: 'pointer',
-    color: '#374151'
-  }
-}
-
 export default function Pipeline() {
-  const { signOut, user, providerToken } = useSession()
+  const { signOut, providerToken } = useSession()
   const navigate = useNavigate()
 
   const [applications, setApplications] = useState([])
@@ -246,14 +153,14 @@ export default function Pipeline() {
       }
     }
     autoSync()
-  }, [providerToken]) // re-run when token arrives from context after OAuth redirect
+  }, [providerToken])
 
   const loadApplications = useCallback(async () => {
     setLoadError('')
     try {
       const data = await getApplications()
       setApplications(data.applications || [])
-    } catch (err) {
+    } catch {
       setLoadError('Could not load your pipeline.')
     } finally {
       setLoading(false)
@@ -300,20 +207,13 @@ export default function Pipeline() {
     navigate('/login')
   }
 
-  function handleEdit(app) {
-    setModalApp(app)
-  }
-
-  function handleAddNew() {
-    setModalApp(null)
-  }
+  function handleEdit(app) { setModalApp(app) }
+  function handleAddNew() { setModalApp(null) }
 
   function handleModalSave(savedApp) {
     setApplications(prev => {
       const exists = prev.find(a => a.id === savedApp.id)
-      if (exists) {
-        return prev.map(a => a.id === savedApp.id ? savedApp : a)
-      }
+      if (exists) return prev.map(a => a.id === savedApp.id ? savedApp : a)
       return [...prev, savedApp]
     })
     setModalApp(undefined)
@@ -327,13 +227,11 @@ export default function Pipeline() {
   async function handleStageChange(appId, newStage, previousStage) {
     setStageChanging(true)
     setStageError('')
-    // Optimistic update
     setApplications(prev => prev.map(a => a.id === appId ? { ...a, stage: newStage } : a))
     try {
       const result = await updateApplication(appId, { stage: newStage })
       setApplications(prev => prev.map(a => a.id === appId ? result.application : a))
-    } catch (err) {
-      // Revert
+    } catch {
       setApplications(prev => prev.map(a => a.id === appId ? { ...a, stage: previousStage } : a))
       setStageError('Could not move application. Please try again.')
     } finally {
@@ -351,108 +249,104 @@ export default function Pipeline() {
   }, {})
 
   return (
-    <div style={styles.page}>
+    <div className="min-h-screen bg-slate-100 flex flex-col">
       {/* Navbar */}
-      <header style={styles.navbar}>
-        <div style={styles.navLeft}>
+      <header className="bg-white border-b border-slate-200 px-6 h-[60px] flex items-center justify-between sticky top-0 z-50 shadow-sm">
+        <div className="flex items-center gap-2.5">
           <Logo size={30} />
-          <span style={styles.brandName}>InterviewerOS</span>
-          <input
-            style={styles.searchInput}
+          <span className="font-bold text-[17px] text-slate-900">InterviewerOS</span>
+          <Input
+            className="ml-4 h-8 text-sm bg-slate-50 w-[220px]"
             type="text"
             placeholder="Search by company..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <div style={styles.navRight}>
+        <div className="flex items-center gap-3 flex-wrap">
           {lastSynced && (
-            <span style={styles.lastSynced}>
-              Last synced {formatDate(lastSynced)}
-            </span>
+            <span className="text-xs text-slate-400">Last synced {formatDate(lastSynced)}</span>
           )}
-          <button
-            style={{ ...styles.syncBtn, ...(syncing ? styles.btnDisabled : {}) }}
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleSyncGmail}
             disabled={syncing}
             data-testid="sync-gmail-button"
           >
             {syncing ? 'Syncing...' : 'Sync Gmail'}
-          </button>
-          <button
-            style={styles.addBtn}
+          </Button>
+          <Button
+            size="sm"
             onClick={handleAddNew}
             data-testid="add-application-button"
           >
             + Add application
-          </button>
-          <button
-            style={styles.logoutBtn}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleLogout}
             data-testid="logout-button"
           >
             Log out
-          </button>
+          </Button>
         </div>
       </header>
 
-      {/* Sync status messages */}
+      {/* Status banners */}
       {syncMessage && (
-        <div style={styles.syncSuccess}>
+        <div className="bg-green-50 border-b border-green-200 px-6 py-2.5 text-sm text-green-800 flex items-center justify-between">
           {syncMessage}
-          <button style={styles.bannerClose} onClick={() => setSyncMessage('')}>&#x2715;</button>
+          <button className="opacity-60 hover:opacity-100 text-base bg-transparent border-none cursor-pointer" onClick={() => setSyncMessage('')}>✕</button>
         </div>
       )}
       {syncError && (
-        <div style={styles.syncError}>
+        <div className="bg-red-50 border-b border-red-200 px-6 py-2.5 text-sm text-red-700 flex items-center justify-between">
           {syncError}
-          <button style={styles.bannerClose} onClick={() => setSyncError('')}>&#x2715;</button>
+          <button className="opacity-60 hover:opacity-100 text-base bg-transparent border-none cursor-pointer" onClick={() => setSyncError('')}>✕</button>
         </div>
       )}
       {stageError && (
-        <div style={styles.syncError}>
+        <div className="bg-red-50 border-b border-red-200 px-6 py-2.5 text-sm text-red-700 flex items-center justify-between">
           {stageError}
-          <button style={styles.bannerClose} onClick={() => setStageError('')}>&#x2715;</button>
+          <button className="opacity-60 hover:opacity-100 text-base bg-transparent border-none cursor-pointer" onClick={() => setStageError('')}>✕</button>
         </div>
       )}
 
-      {/* Board area */}
-      <main style={styles.main}>
+      {/* Board */}
+      <main className="flex-1 p-6 overflow-hidden">
         {loading ? (
-          <div style={styles.center}>
-            <div style={styles.spinner} />
-            <p style={styles.loadingText}>Loading your pipeline...</p>
+          <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
+            <div className="w-10 h-10 border-[3px] border-slate-200 border-t-indigo-500 rounded-full animate-spin" />
+            <p className="text-sm text-slate-500">Loading your pipeline...</p>
           </div>
         ) : loadError ? (
-          <div style={styles.center}>
-            <p style={styles.errorText}>{loadError}</p>
-            <button style={styles.retryBtn} onClick={loadApplications}>Retry</button>
+          <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
+            <p className="text-base font-medium text-red-600">{loadError}</p>
+            <Button onClick={loadApplications}>Retry</Button>
           </div>
         ) : applications.length === 0 ? (
-          <div style={styles.center}>
-            <div style={styles.emptyIcon}>&#128196;</div>
-            <p style={styles.emptyTitle}>No applications yet</p>
-            <p style={styles.emptySubtitle}>Add your first job application to get started.</p>
-            <button
-              style={styles.addBtnLarge}
-              onClick={handleAddNew}
-              data-testid="empty-add-application-button"
-            >
+          <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
+            <div className="text-5xl">📄</div>
+            <p className="text-xl font-bold text-slate-900">No applications yet</p>
+            <p className="text-sm text-slate-500">Add your first job application to get started.</p>
+            <Button onClick={handleAddNew} data-testid="empty-add-application-button">
               + Add application
-            </button>
+            </Button>
           </div>
         ) : (
-          <div style={styles.board}>
+          <div className="grid grid-cols-5 gap-4">
             {STAGES.map(s => (
-              <div key={s.key} style={styles.column}>
-                <div style={styles.columnHeader}>
-                  <div style={{ ...styles.columnDot, background: STAGE_COLORS[s.key] }} />
-                  <span style={styles.columnTitle}>{s.label}</span>
-                  <span style={styles.columnCount}>{grouped[s.key].length}</span>
+              <div key={s.key} className="flex flex-col">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${STAGE_DOT_CLASSES[s.key]}`} />
+                  <span className="font-semibold text-sm text-slate-700">{s.label}</span>
+                  <span className="text-xs text-slate-400 ml-auto">{grouped[s.key].length}</span>
                 </div>
-                <div style={styles.cardList}>
+                <div className="flex flex-col gap-2.5">
                   {grouped[s.key].length === 0 ? (
-                    <div style={styles.emptyColumn}>No applications</div>
+                    <div className="text-xs text-slate-400 text-center py-4">No applications</div>
                   ) : (
                     grouped[s.key].map(app => (
                       <ApplicationCard
@@ -471,7 +365,7 @@ export default function Pipeline() {
         )}
       </main>
 
-      {/* Application Modal */}
+      {/* Modal */}
       {modalApp !== undefined && (
         <ApplicationModal
           application={modalApp}
@@ -482,306 +376,4 @@ export default function Pipeline() {
       )}
     </div>
   )
-}
-
-const styles = {
-  page: {
-    minHeight: '100vh',
-    background: '#f1f5f9',
-    display: 'flex',
-    flexDirection: 'column'
-  },
-  navbar: {
-    background: '#fff',
-    borderBottom: '1px solid #e2e8f0',
-    padding: '0 24px',
-    height: '60px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    position: 'sticky',
-    top: 0,
-    zIndex: 200,
-    boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
-  },
-  navLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px'
-  },
-  brandIcon: {
-    width: '30px',
-    height: '30px',
-    background: '#6366f1',
-    color: '#fff',
-    borderRadius: '7px',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontWeight: '700',
-    fontSize: '15px'
-  },
-  brandName: {
-    fontWeight: '700',
-    fontSize: '17px',
-    color: '#0f172a'
-  },
-  searchInput: {
-    marginLeft: '16px',
-    padding: '6px 12px',
-    border: '1px solid #e2e8f0',
-    borderRadius: '6px',
-    fontSize: '14px',
-    width: '220px',
-    outline: 'none',
-    color: '#0f172a',
-    background: '#f8fafc',
-  },
-  navRight: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    flexWrap: 'wrap'
-  },
-  gmailConnected: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
-  },
-  connectedDot: {
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-    background: '#10b981'
-  },
-  gmailEmail: {
-    fontSize: '13px',
-    color: '#374151'
-  },
-  syncBtn: {
-    padding: '6px 14px',
-    background: '#f1f5f9',
-    border: '1px solid #d1d5db',
-    borderRadius: '7px',
-    fontSize: '13px',
-    fontWeight: '500',
-    cursor: 'pointer',
-    color: '#374151'
-  },
-  disconnectedLabel: {
-    fontSize: '13px',
-    color: '#94a3b8'
-  },
-  addBtn: {
-    padding: '7px 16px',
-    background: '#6366f1',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '13px',
-    fontWeight: '600',
-    cursor: 'pointer'
-  },
-  logoutBtn: {
-    padding: '7px 14px',
-    background: 'none',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    fontSize: '13px',
-    color: '#374151',
-    cursor: 'pointer'
-  },
-  gmailBanner: {
-    background: '#eff6ff',
-    borderBottom: '1px solid #bfdbfe',
-    padding: '12px 24px',
-    fontSize: '14px',
-    color: '#1d4ed8',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between'
-  },
-  syncSuccess: {
-    background: '#f0fdf4',
-    borderBottom: '1px solid #bbf7d0',
-    padding: '10px 24px',
-    fontSize: '14px',
-    color: '#166534',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between'
-  },
-  syncError: {
-    background: '#fef2f2',
-    borderBottom: '1px solid #fecaca',
-    padding: '10px 24px',
-    fontSize: '14px',
-    color: '#dc2626',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between'
-  },
-  bannerClose: {
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    fontSize: '16px',
-    color: 'inherit',
-    opacity: 0.6,
-    padding: '0 4px'
-  },
-  connectBanner: {
-    background: '#fff',
-    border: '1px solid #e0e7ff',
-    borderRadius: '12px',
-    margin: '20px 24px 0',
-    padding: '16px 20px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '16px',
-    boxShadow: '0 1px 3px rgba(99,102,241,0.1)'
-  },
-  connectBannerContent: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: '14px'
-  },
-  connectBannerIcon: {
-    fontSize: '24px'
-  },
-  connectBannerSub: {
-    fontSize: '13px',
-    color: '#64748b',
-    marginTop: '2px'
-  },
-  connectBtn: {
-    padding: '8px 18px',
-    background: '#6366f1',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    whiteSpace: 'nowrap'
-  },
-  main: {
-    flex: 1,
-    padding: '24px',
-    overflow: 'hidden'
-  },
-  center: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '400px',
-    gap: '12px'
-  },
-  spinner: {
-    width: '40px',
-    height: '40px',
-    border: '3px solid #e2e8f0',
-    borderTop: '3px solid #6366f1',
-    borderRadius: '50%',
-    animation: 'spin 0.8s linear infinite'
-  },
-  loadingText: {
-    color: '#64748b',
-    fontSize: '14px'
-  },
-  errorText: {
-    color: '#dc2626',
-    fontSize: '16px',
-    fontWeight: '500'
-  },
-  retryBtn: {
-    padding: '9px 20px',
-    background: '#6366f1',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer'
-  },
-  emptyIcon: {
-    fontSize: '48px'
-  },
-  emptyTitle: {
-    fontSize: '20px',
-    fontWeight: '700',
-    color: '#0f172a'
-  },
-  emptySubtitle: {
-    fontSize: '14px',
-    color: '#64748b'
-  },
-  addBtnLarge: {
-    marginTop: '8px',
-    padding: '10px 24px',
-    background: '#6366f1',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '15px',
-    fontWeight: '600',
-    cursor: 'pointer'
-  },
-  board: {
-    display: 'flex',
-    gap: '16px',
-    overflowX: 'auto',
-    paddingBottom: '16px',
-    alignItems: 'flex-start'
-  },
-  column: {
-    minWidth: '260px',
-    flex: '0 0 260px',
-    background: '#e8edf4',
-    borderRadius: '12px',
-    padding: '14px',
-    maxHeight: 'calc(100vh - 180px)',
-    display: 'flex',
-    flexDirection: 'column'
-  },
-  columnHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    marginBottom: '12px',
-    paddingBottom: '10px',
-    borderBottom: '1px solid #d1dce8'
-  },
-  columnDot: {
-    width: '10px',
-    height: '10px',
-    borderRadius: '50%'
-  },
-  columnTitle: {
-    flex: 1,
-    fontSize: '14px',
-    fontWeight: '700',
-    color: '#1e293b'
-  },
-  columnCount: {
-    background: '#fff',
-    borderRadius: '12px',
-    padding: '2px 8px',
-    fontSize: '12px',
-    fontWeight: '700',
-    color: '#475569'
-  },
-  cardList: {
-    flex: 1,
-    overflowY: 'auto',
-    paddingRight: '2px'
-  },
-  emptyColumn: {
-    fontSize: '13px',
-    color: '#94a3b8',
-    textAlign: 'center',
-    padding: '24px 0'
-  }
 }

@@ -9,6 +9,7 @@ InterviewerOS is an AI-powered job search workspace. Users sign in with Google, 
 | Layer | Technology |
 |-------|-----------|
 | Frontend | React + Vite (`client/`) |
+| UI components | shadcn/ui — Radix UI primitives + Tailwind CSS |
 | Backend | Express on port 3001 (`server/`) |
 | Database + Auth | Supabase (Postgres + Google OAuth via Supabase Auth) |
 
