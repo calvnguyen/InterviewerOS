@@ -154,6 +154,30 @@ pkill -f "node index.js" && pkill -f "vite"
 
 ---
 
+## UI components
+
+The frontend uses [shadcn/ui](https://ui.shadcn.com) — a collection of copy-owned components built on [Radix UI](https://www.radix-ui.com) primitives and styled with [Tailwind CSS](https://tailwindcss.com). Components live in `client/src/components/ui/` and are part of the source tree (not a black-box npm package), so you can edit them freely.
+
+**Components currently installed:** `button`, `input`, `label`, `textarea`, `select`, `dialog`, `badge`, `card`, `alert`.
+
+To add a new component:
+
+```bash
+cd client
+npx shadcn@latest add <component-name>
+```
+
+To refresh all components to the latest version:
+
+```bash
+cd client
+npx shadcn@latest add button input label textarea select dialog badge card alert --overwrite
+```
+
+The Tailwind theme (colors, radius, fonts) is configured via CSS variables in `client/src/index.css` and wired into `client/tailwind.config.js`. The brand color is indigo-500 (`#6366f1`), mapped to the `--primary` CSS variable.
+
+---
+
 ## Testing
 
 End-to-end tests use [Playwright](https://playwright.dev) and live in `tests/`. The dev server starts automatically when you run the suite.
