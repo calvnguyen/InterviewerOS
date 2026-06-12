@@ -1,0 +1,29 @@
+{
+  "name": "intervieweros",
+  "version": "1.0.0",
+  "description": "**A job search workspace.** Log applications, track interviews, sync recruiter emails, and get a clear next action on every open role — all in one place.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:report": "playwright show-report"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/calvnguyen/InterviewerOS.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/calvnguyen/InterviewerOS/issues"
+  },
+  "homepage": "https://github.com/calvnguyen/InterviewerOS#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
+  }
+}
