@@ -27,7 +27,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+    <div className="min-h-screen flex items-center justify-center bg-white p-6">
       <Card className="w-full max-w-[420px] shadow-lg">
         <CardContent className="pt-10 pb-10 px-10 text-center">
           <div className="flex items-center justify-center gap-2 mb-7">
