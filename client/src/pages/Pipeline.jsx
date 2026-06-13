@@ -1,12 +1,25 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '../context/SessionContext.jsx'
-import { getApplications, getLastSynced, syncGmail, updateApplication } from '../lib/api.js'
+import { getApplications, getLastSynced, syncGmail, updateApplication, deleteApplication } from '../lib/api.js'
 import Logo from '../components/Logo.jsx'
 import ApplicationModal from '../components/ApplicationModal.jsx'
+import ApplicationDrawer from '../components/ApplicationDrawer.jsx'
+import CompanyAvatar from '../components/CompanyAvatar.jsx'
+import MetricsStrip from '../components/MetricsStrip.jsx'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import { useDraggable, useDroppable } from '@dnd-kit/core'
+import { Send, Phone, Calendar, Star, XCircle } from 'lucide-react'
 
 const STAGES = [
   { key: 'applied', label: 'Applied' },
@@ -32,22 +45,91 @@ const NEXT_ACTION_CLASSES = {
   'Respond to offer': 'bg-green-100 text-green-700 border-green-200',
 }
 
+const EMPTY_STATE_CONFIG = {
+  applied: {
+    Icon: Send,
+    title: 'No applications yet',
+    description: 'Add one manually or sync your Gmail inbox.',
+  },
+  phone_screen: {
+    Icon: Phone,
+    title: 'No calls scheduled',
+    description: 'Applications move here when a recruiter reaches out.',
+  },
+  interview: {
+    Icon: Calendar,
+    title: 'No interviews upcoming',
+    description: "You'll see interviews here once scheduled.",
+  },
+  offer: {
+    Icon: Star,
+    title: 'No offers yet',
+    description: "Keep going — you're making progress.",
+  },
+  rejected: {
+    Icon: XCircle,
+    title: 'Nothing here',
+    description: "Rejections happen — they're part of the process.",
+  },
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return ''
   const d = new Date(dateStr)
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-function ApplicationCard({ app, onEdit, onStageChange, stageChanging }) {
+// Draggable card wrapper
+function DraggableCard({ app, children }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: app.id,
+    data: { app },
+  })
+
+  const style = transform
+    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
+    : undefined
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={isDragging ? 'opacity-40' : ''}
+      {...attributes}
+      {...listeners}
+    >
+      {children}
+    </div>
+  )
+}
+
+// Droppable column wrapper
+function DroppableColumn({ stageKey, children }) {
+  const { setNodeRef, isOver } = useDroppable({ id: stageKey })
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`flex flex-col gap-2.5 min-h-[60px] rounded-lg transition-colors ${
+        isOver ? 'bg-indigo-50/60' : ''
+      }`}
+    >
+      {children}
+    </div>
+  )
+}
+
+function ApplicationCard({ app, onEdit, onStageChange, stageChanging, onCardClick }) {
   const [moveOpen, setMoveOpen] = useState(false)
   const otherStages = STAGES.filter(s => s.key !== app.stage)
 
   return (
     <div
-      className={`bg-white rounded-xl p-3.5 shadow-sm relative transition-shadow hover:shadow-md cursor-default ${
+      className={`bg-white rounded-xl p-3.5 shadow-sm relative transition-shadow hover:shadow-md cursor-pointer ${
         app.stale ? 'border-l-[3px] border-amber-400' : 'border-l-[3px] border-transparent'
       }`}
       title={app.stale ? 'No update in 7+ days' : undefined}
+      onClick={() => onCardClick(app)}
     >
       {app.stale && (
         <Badge className="absolute top-2.5 right-2.5 text-[10px] bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200 uppercase tracking-wide">
@@ -55,9 +137,13 @@ function ApplicationCard({ app, onEdit, onStageChange, stageChanging }) {
         </Badge>
       )}
 
-      <div className="font-bold text-[15px] text-slate-900 mb-0.5 pr-24 leading-tight">{app.company}</div>
-      <div className="text-[13px] text-slate-500 mb-1.5">{app.role}</div>
-      <div className="text-[12px] text-slate-400 mb-2">{formatDate(app.date_applied)}</div>
+      {/* Company name with avatar */}
+      <div className="flex items-center gap-2 mb-0.5 pr-24">
+        <CompanyAvatar company={app.company} size="sm" />
+        <span className="font-bold text-[15px] text-slate-900 leading-tight truncate">{app.company}</span>
+      </div>
+      <div className="text-[13px] text-slate-500 mb-1.5 pl-8">{app.role}</div>
+      <div className="text-[12px] text-slate-400 mb-2 pl-8">{formatDate(app.date_applied)}</div>
 
       {app.next_action && (
         <Badge
@@ -74,11 +160,11 @@ function ApplicationCard({ app, onEdit, onStageChange, stageChanging }) {
             variant="outline"
             size="sm"
             className="h-7 text-xs px-2.5"
-            onClick={() => setMoveOpen(o => !o)}
+            onClick={e => { e.stopPropagation(); setMoveOpen(o => !o) }}
             disabled={stageChanging}
             data-testid={`move-btn-${app.id}`}
           >
-            Move to ▾
+            Move to &#9662;
           </Button>
           {moveOpen && (
             <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 min-w-[140px] overflow-hidden">
@@ -86,7 +172,8 @@ function ApplicationCard({ app, onEdit, onStageChange, stageChanging }) {
                 <button
                   key={s.key}
                   className="w-full px-3.5 py-2 text-left text-[13px] text-slate-700 hover:bg-slate-50 border-none bg-transparent cursor-pointer"
-                  onClick={() => {
+                  onClick={e => {
+                    e.stopPropagation()
                     setMoveOpen(false)
                     onStageChange(app.id, s.key, app.stage)
                   }}
@@ -102,12 +189,25 @@ function ApplicationCard({ app, onEdit, onStageChange, stageChanging }) {
           variant="outline"
           size="sm"
           className="h-7 text-xs px-2.5"
-          onClick={() => onEdit(app)}
+          onClick={e => { e.stopPropagation(); onEdit(app) }}
           data-testid={`edit-btn-${app.id}`}
         >
           Edit
         </Button>
       </div>
+    </div>
+  )
+}
+
+// Ghost card shown in DragOverlay
+function GhostCard({ app }) {
+  return (
+    <div className="bg-white rounded-xl p-3.5 shadow-xl border border-indigo-200 opacity-95 w-full cursor-grabbing">
+      <div className="flex items-center gap-2 mb-0.5">
+        <CompanyAvatar company={app.company} size="sm" />
+        <span className="font-bold text-[15px] text-slate-900 leading-tight truncate">{app.company}</span>
+      </div>
+      <div className="text-[13px] text-slate-500 pl-8">{app.role}</div>
     </div>
   )
 }
@@ -130,7 +230,19 @@ export default function Pipeline() {
   const [stageChanging, setStageChanging] = useState(false)
   const [stageError, setStageError] = useState('')
 
-  // Auto-sync on first mount using the Google provider_token from the Supabase session
+  const [drawerApp, setDrawerApp] = useState(undefined)
+  const [stageFilter, setStageFilter] = useState('all')
+
+  // dnd-kit: active drag item
+  const [activeApp, setActiveApp] = useState(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    })
+  )
+
+  // Auto-sync on first mount
   useEffect(() => {
     async function autoSync() {
       if (providerToken) {
@@ -153,6 +265,7 @@ export default function Pipeline() {
       }
     }
     autoSync()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [providerToken])
 
   const loadApplications = useCallback(async () => {
@@ -179,7 +292,7 @@ export default function Pipeline() {
   useEffect(() => {
     loadApplications()
     loadLastSynced()
-  }, [])
+  }, [loadApplications, loadLastSynced])
 
   async function handleSyncGmail() {
     setSyncing(true)
@@ -239,6 +352,42 @@ export default function Pipeline() {
     }
   }
 
+  async function handleDrawerDelete(appId) {
+    try {
+      await deleteApplication(appId)
+      setApplications(prev => prev.filter(a => a.id !== appId))
+      setDrawerApp(undefined)
+    } catch {
+      setStageError('Could not delete application. Please try again.')
+    }
+  }
+
+  // dnd-kit handlers
+  function handleDragStart(event) {
+    const app = applications.find(a => a.id === event.active.id)
+    if (app) setActiveApp(app)
+  }
+
+  function handleDragEnd(event) {
+    const { active, over } = event
+    setActiveApp(null)
+
+    if (!over) return
+
+    const activeId = active.id
+    const overColumnId = over.id
+
+    // over.id is a stage key (from DroppableColumn)
+    const validStages = STAGES.map(s => s.key)
+    if (!validStages.includes(overColumnId)) return
+
+    const app = applications.find(a => a.id === activeId)
+    if (!app) return
+    if (app.stage === overColumnId) return
+
+    handleStageChange(activeId, overColumnId, app.stage)
+  }
+
   const filtered = search.trim()
     ? applications.filter(a => a.company.toLowerCase().includes(search.toLowerCase()))
     : applications
@@ -247,6 +396,10 @@ export default function Pipeline() {
     acc[s.key] = filtered.filter(a => a.stage === s.key)
     return acc
   }, {})
+
+  const visibleStages = stageFilter === 'all'
+    ? STAGES
+    : STAGES.filter(s => s.key === stageFilter)
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -298,19 +451,19 @@ export default function Pipeline() {
       {syncMessage && (
         <div className="bg-green-50 border-b border-green-200 px-6 py-2.5 text-sm text-green-800 flex items-center justify-between">
           {syncMessage}
-          <button className="opacity-60 hover:opacity-100 text-base bg-transparent border-none cursor-pointer" onClick={() => setSyncMessage('')}>✕</button>
+          <button className="opacity-60 hover:opacity-100 text-base bg-transparent border-none cursor-pointer" onClick={() => setSyncMessage('')}>&#x2715;</button>
         </div>
       )}
       {syncError && (
         <div className="bg-red-50 border-b border-red-200 px-6 py-2.5 text-sm text-red-700 flex items-center justify-between">
           {syncError}
-          <button className="opacity-60 hover:opacity-100 text-base bg-transparent border-none cursor-pointer" onClick={() => setSyncError('')}>✕</button>
+          <button className="opacity-60 hover:opacity-100 text-base bg-transparent border-none cursor-pointer" onClick={() => setSyncError('')}>&#x2715;</button>
         </div>
       )}
       {stageError && (
         <div className="bg-red-50 border-b border-red-200 px-6 py-2.5 text-sm text-red-700 flex items-center justify-between">
           {stageError}
-          <button className="opacity-60 hover:opacity-100 text-base bg-transparent border-none cursor-pointer" onClick={() => setStageError('')}>✕</button>
+          <button className="opacity-60 hover:opacity-100 text-base bg-transparent border-none cursor-pointer" onClick={() => setStageError('')}>&#x2715;</button>
         </div>
       )}
 
@@ -328,7 +481,7 @@ export default function Pipeline() {
           </div>
         ) : applications.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
-            <div className="text-5xl">📄</div>
+            <div className="text-5xl">&#x1F4C4;</div>
             <p className="text-xl font-bold text-slate-900">No applications yet</p>
             <p className="text-sm text-slate-500">Add your first job application to get started.</p>
             <Button onClick={handleAddNew} data-testid="empty-add-application-button">
@@ -336,34 +489,114 @@ export default function Pipeline() {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-5 gap-4">
-            {STAGES.map(s => (
-              <div key={s.key} className="flex flex-col bg-white rounded-xl border border-slate-100 p-3 shadow-sm">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className={`w-2 h-2 rounded-full shrink-0 ${STAGE_DOT_CLASSES[s.key]}`} />
-                  <span className="font-semibold text-sm text-slate-700">{s.label}</span>
-                  <span className="text-xs text-slate-400 ml-auto">{grouped[s.key].length}</span>
-                </div>
-                <div className="flex flex-col gap-2.5">
-                  {grouped[s.key].length === 0 ? (
-                    <div className="text-xs text-slate-400 text-center py-4">No applications</div>
-                  ) : (
-                    grouped[s.key].map(app => (
-                      <ApplicationCard
-                        key={app.id}
-                        app={app}
-                        onEdit={handleEdit}
-                        onStageChange={handleStageChange}
-                        stageChanging={stageChanging}
-                      />
-                    ))
-                  )}
-                </div>
+          <>
+            {/* Metrics strip */}
+            <MetricsStrip applications={applications} />
+
+            {/* Stage filter pills */}
+            <div className="flex items-center gap-2 mb-4 flex-wrap">
+              <button
+                className={`px-3.5 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                  stageFilter === 'all'
+                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                }`}
+                onClick={() => setStageFilter('all')}
+              >
+                All
+              </button>
+              {STAGES.map(s => (
+                <button
+                  key={s.key}
+                  className={`px-3.5 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                    stageFilter === s.key
+                      ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  }`}
+                  onClick={() => setStageFilter(s.key)}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Kanban board with DnD */}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              <div
+                className={`grid gap-4 ${
+                  stageFilter === 'all' ? 'grid-cols-5' : 'grid-cols-1'
+                }`}
+              >
+                {visibleStages.map(s => {
+                  const emptyConfig = EMPTY_STATE_CONFIG[s.key]
+                  const EmptyIcon = emptyConfig?.Icon
+
+                  return (
+                    <div
+                      key={s.key}
+                      className={`flex flex-col bg-white rounded-xl border border-slate-100 p-3 shadow-sm ${
+                        stageFilter !== 'all' ? 'max-w-md' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className={`w-2 h-2 rounded-full shrink-0 ${STAGE_DOT_CLASSES[s.key]}`} />
+                        <span className="font-semibold text-sm text-slate-700">{s.label}</span>
+                        <span className="text-xs text-slate-400 ml-auto">{grouped[s.key].length}</span>
+                      </div>
+
+                      <DroppableColumn stageKey={s.key}>
+                        {grouped[s.key].length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
+                            {EmptyIcon && (
+                              <EmptyIcon size={24} className="text-slate-300" />
+                            )}
+                            <p className="text-sm font-medium text-slate-400">{emptyConfig?.title}</p>
+                            <p className="text-xs text-slate-300 max-w-[160px] leading-relaxed">{emptyConfig?.description}</p>
+                          </div>
+                        ) : (
+                          grouped[s.key].map(app => (
+                            <DraggableCard key={app.id} app={app}>
+                              <ApplicationCard
+                                app={app}
+                                onEdit={handleEdit}
+                                onStageChange={handleStageChange}
+                                stageChanging={stageChanging}
+                                onCardClick={setDrawerApp}
+                              />
+                            </DraggableCard>
+                          ))
+                        )}
+                      </DroppableColumn>
+                    </div>
+                  )
+                })}
               </div>
-            ))}
-          </div>
+
+              {/* Drag overlay ghost card */}
+              <DragOverlay>
+                {activeApp ? <GhostCard app={activeApp} /> : null}
+              </DragOverlay>
+            </DndContext>
+          </>
         )}
       </main>
+
+      {/* Drawer */}
+      <ApplicationDrawer
+        app={drawerApp}
+        onClose={() => setDrawerApp(undefined)}
+        onEdit={app => {
+          setDrawerApp(undefined)
+          setModalApp(app)
+        }}
+        onDelete={handleDrawerDelete}
+        onStageChange={handleStageChange}
+      />
 
       {/* Modal */}
       {modalApp !== undefined && (

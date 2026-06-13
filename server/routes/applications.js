@@ -4,7 +4,7 @@ const express = require('express');
 const { requireAuth } = require('../middleware/auth');
 const { supabase } = require('../supabase');
 const { computeFields } = require('../lib/computeFields');
-const { parseEmail } = require('../lib/parseEmail');
+const parseEmail = require('../lib/parseEmail');
 
 const router = express.Router();
 
@@ -37,13 +37,24 @@ router.post('/parse-email', requireAuth, (req, res) => {
 
   try {
     const result = parseEmail(email_text);
-    return res.status(200).json(result);
+    return res.status(200).json({
+      company: result.company,
+      company_confidence: result.company_confidence,
+      role: result.role,
+      role_confidence: result.role_confidence,
+      stage: result.stage,
+      stage_confidence: result.stage_confidence,
+      confidence: result.confidence,
+    });
   } catch (err) {
     // Never 5xx for parsing errors — return low-confidence empty result
     return res.status(200).json({
       company: null,
+      company_confidence: 'low',
       role: null,
+      role_confidence: 'low',
       stage: null,
+      stage_confidence: 'low',
       confidence: 'low',
     });
   }

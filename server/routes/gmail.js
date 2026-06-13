@@ -5,7 +5,7 @@ const { google } = require('googleapis');
 const { requireAuth } = require('../middleware/auth');
 const { supabase } = require('../supabase');
 const { computeFields } = require('../lib/computeFields');
-const { parseEmail } = require('../lib/parseEmail');
+const parseEmail = require('../lib/parseEmail');
 
 const router = express.Router();
 
@@ -131,9 +131,8 @@ router.post('/sync', requireAuth, async (req, res) => {
       ? new Date(parseInt(messageData.internalDate, 10)).toISOString()
       : new Date().toISOString();
 
-    // Parse using subject + snippet
-    const emailText = `${subject} ${snippet}`;
-    const parsed = parseEmail(emailText);
+    // Parse using structured input — subject gets highest-confidence treatment
+    const parsed = parseEmail({ subject, body: snippet, from });
 
     // Skip messages with no useful content
     if (!parsed.company && !parsed.role && !parsed.stage) {

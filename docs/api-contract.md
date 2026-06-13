@@ -265,17 +265,25 @@ or `{ "last_synced_at": null }` if never synced.
 ```json
 {
   "company": "Acme Corp",
+  "company_confidence": "high",
   "role": "Product Manager",
+  "role_confidence": "high",
   "stage": "applied",
+  "stage_confidence": "medium",
   "confidence": "high"
 }
 ```
-- `confidence` is one of `high | low`. When `low`, the frontend should leave the fields blank and let the user fill them.
+- `confidence` is one of `high | low` (backward-compat field). `high` when at least one of `company` or `role` is non-null.
+- `company_confidence`, `role_confidence`, `stage_confidence` are each one of `high | medium | low`:
+  - `high` — extracted from the email subject (most reliable signal)
+  - `medium` — extracted from the email body, signature block, or sender domain
+  - `low` — not found; field is `null` (or defaulted to `"applied"` for stage)
+- When overall `confidence` is `low`, the frontend should leave the fields blank and let the user fill them.
 **Error responses:**
 - `400 Bad Request` — `{ "error": "validation_error", "message": "email_text is required." }`
 - `401 Unauthorized`
 
-**Notes:** Always returns `200 OK` with partial or empty fields — never a 5xx for low-confidence parsing. A failed parse returns `{ "company": null, "role": null, "stage": null, "confidence": "low" }`.
+**Notes:** Always returns `200 OK` with partial or empty fields — never a 5xx for low-confidence parsing. A failed parse returns `{ "company": null, "company_confidence": "low", "role": null, "role_confidence": "low", "stage": null, "stage_confidence": "low", "confidence": "low" }`.
 
 ---
 
