@@ -38,6 +38,8 @@ const PORT = process.env.PORT || 3001;
 // -- Middleware --
 const ALLOWED_ORIGINS = [
   'http://localhost:5173',
+  'http://localhost:5174',
+  'https://intervieweros.vercel.app',
   process.env.CLIENT_URL,
 ].filter(Boolean)
 
