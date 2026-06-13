@@ -8,9 +8,17 @@
 
 ## What it does
 
-InterviewerOS is a Gmail-first job search tracker. Connect your Google account and it immediately pulls job-related emails from your inbox — recruiter outreach, application confirmations, interview invitations, follow-ups — and organises them by company into a searchable pipeline. Log applications manually, track which resume you sent to each role, and always know what to do next.
+InterviewerOS is a Gmail-first job search tracker. Connect your Google account and it immediately pulls job-related emails from your inbox — recruiter outreach, application confirmations, interview invitations, follow-ups — and organises them by company into a Kanban pipeline.
 
-The focus is Gmail integration and application tracking. Everything else — resume comparison, interview prep, company research, AI recommendations — builds on top of that foundation.
+- **Fuzzy global search** across company names, roles, notes, and email content — with a live results dropdown and `Cmd+K` command palette
+- **Drag-and-drop Kanban board** across five stages: Applied → Phone Screen → Interview → Offer → Rejected
+- **Application drawer** — click any card to see details, activity timeline, email preview, notes, resume used, and interview prep
+- **Metrics strip** — total, active, interviews, offers, and response rate computed live from your pipeline
+- **Resume tracking** — name and link resumes, tag which resume went to which application
+- **Interview prep** — notes textarea and checklist per application (available at Interview and Offer stages)
+- **Activity log** — timestamped history of stage changes, notes edits, and Gmail imports per application
+- **Notification center** — bell icon in the header surfaces sync results and stale-application alerts
+- **Smart email parser** — 5-stage pipeline with per-field confidence scoring extracts company, role, and stage from pasted email text or Gmail imports
 
 ---
 
@@ -18,48 +26,59 @@ The focus is Gmail integration and application tracking. Everything else — res
 
 | Module | Status | What it covers |
 |--------|--------|----------------|
-| **Application tracking** | Available | Manually log applications, track stage and dates, attach notes |
-| **Gmail sync & email intelligence** | Available | Connect Google account, auto-sync recruiter emails (inbox, spam, trash), grouped and parsed by company |
-| **Resume tracking** | Planned | Upload resumes, track which resume was sent to which company, compare against job descriptions |
-| **Interview prep** | Planned | Notes, question banks, and prep checklists per application |
+| **Application tracking** | ✅ Available | Manually log applications, track stage and dates, attach notes |
+| **Gmail sync & email intelligence** | ✅ Available | Connect Google account, auto-sync recruiter emails, grouped and parsed by company |
+| **Drag-and-drop pipeline** | ✅ Available | Move cards between stages by dragging or the Move-to menu |
+| **Application drawer** | ✅ Available | Detail panel with activity log, email preview, notes, resume, interview prep |
+| **Resume tracking** | ✅ Available | Name resumes, link them to applications |
+| **Interview prep** | ✅ Available | Notes and checklist per application at Interview/Offer stage |
+| **Global search & command palette** | ✅ Available | Fuse.js fuzzy search, live dropdown, Cmd+K palette with quick actions |
+| **Notification center** | ✅ Available | Bell icon with unread badge, sync and stale-app alerts |
 | **Company research** | Planned | Company snapshots, role context, and relevant news per application |
-| **AI recommendations & next actions** | Planned | Suggested next steps, follow-up nudges, and background update detection |
-| **Dashboard & analytics** | Planned | Unified view of applications, emails, resumes, and open actions across all roles |
+| **AI recommendations & next actions** | Planned | Suggested follow-ups, nudges, and background update detection |
+| **Dashboard & analytics** | Planned | Unified view of applications, emails, resumes, and open actions |
 
 ---
 
-## Gmail integration module
+## Gmail integration
 
-The first module to ship. Sign in with Google once — authentication and Gmail read access are granted in a single OAuth flow. No app passwords, no IMAP configuration.
+Sign in with Google once — authentication and Gmail read access are granted in a single OAuth flow. No app passwords, no IMAP configuration.
 
-**What it does:**
-
-- Scans your inbox (including Spam and Trash, where recruiters sometimes land) for job-related emails
-- Parses each email and groups threads by company, computing the current stage and next action from the content
-- Surfaces the emails as pipeline cards with a five-stage Kanban board: Applied, Phone Screen, Interview, Offer, Rejected
-- Flags applications that haven't moved in 7+ days
-- Lets you re-sync at any time to pull in new emails
+- Scans inbox, Spam, and Trash for job-related emails
+- Parses each email and groups threads by company, computing stage and next action
+- Deduplicates by Gmail message ID — re-syncing is safe
+- Stores `email_subject` and `email_snippet` per application for preview in the drawer
 - Supports manual application logging and email-paste parsing as fallback intake paths
 
-**What it does not do (yet):**
+InterviewerOS never stores your Google access token. The frontend passes the short-lived `provider_token` to the backend for each sync request; it is discarded immediately after use.
 
-- Resume upload or tracking
-- Resume vs. job description comparison
-- Background automated syncing (sync is on-demand)
-- Sending emails or taking any write action on Gmail
+---
+
+## Keyboard shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Cmd+K` / `Ctrl+K` | Open command palette |
+| `↑ ↓` | Navigate search dropdown or command palette |
+| `Enter` | Open selected result |
+| `Escape` | Close dropdown / palette |
 
 ---
 
 ## Tech stack
 
-| Layer        | Technology                          |
-| ------------ | ----------------------------------- |
-| Frontend     | React + Vite                        |
-| UI           | shadcn/ui (Radix UI + Tailwind CSS) |
-| Backend      | Express (Node.js)                   |
-| Database     | Supabase (Postgres)                 |
-| Auth         | Supabase Auth — Google OAuth2       |
-| Testing      | Playwright                          |
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React + Vite |
+| UI | shadcn/ui (Radix UI + Tailwind CSS) |
+| Search | Fuse.js (in-memory fuzzy search) |
+| Drag-and-drop | @dnd-kit/core |
+| Backend | Express (Node.js) |
+| Database | Supabase (Postgres) |
+| Auth | Supabase Auth — Google OAuth2 |
+| Testing | Playwright |
+| Frontend hosting | Vercel |
+| Backend hosting | Railway |
 
 ---
 
@@ -148,72 +167,39 @@ cd client && npm run dev
 
 Open [http://localhost:5173](http://localhost:5173). Click **Sign in with Google** to authenticate and trigger the first Gmail sync.
 
-To stop both servers:
-
-```bash
-pkill -f "node index.js" && pkill -f "vite"
-```
-
 ---
 
 ## UI components
 
-The frontend uses [shadcn/ui](https://ui.shadcn.com) — a collection of copy-owned components built on [Radix UI](https://www.radix-ui.com) primitives and styled with [Tailwind CSS](https://tailwindcss.com). Components live in `client/src/components/ui/` and are part of the source tree (not a black-box npm package), so you can edit them freely.
+The frontend uses [shadcn/ui](https://ui.shadcn.com) — components built on [Radix UI](https://www.radix-ui.com) primitives styled with [Tailwind CSS](https://tailwindcss.com). Components live in `client/src/components/ui/` and are part of the source tree.
 
 **Components currently installed:** `button`, `input`, `label`, `textarea`, `select`, `dialog`, `badge`, `card`, `alert`.
 
 To add a new component:
 
 ```bash
-cd client
-npx shadcn@latest add <component-name>
+cd client && npx shadcn@latest add <component-name>
 ```
-
-To refresh all components to the latest version:
-
-```bash
-cd client
-npx shadcn@latest add button input label textarea select dialog badge card alert --overwrite
-```
-
-The Tailwind theme (colors, radius, fonts) is configured via CSS variables in `client/src/index.css` and wired into `client/tailwind.config.js`. The brand color is indigo-500 (`#6366f1`), mapped to the `--primary` CSS variable.
 
 ---
 
 ## Testing
 
-End-to-end tests use [Playwright](https://playwright.dev) and live in `tests/`. The dev server starts automatically when you run the suite.
+End-to-end tests use [Playwright](https://playwright.dev) and live in `tests/`.
 
 ```bash
-# Run all tests (headless)
-npm test
-
-# Interactive UI mode
-npm run test:ui
-
-# View last HTML report
-npm run test:report
+npm test           # headless
+npm run test:ui    # interactive UI mode
+npm run test:report  # view last HTML report
 ```
 
-Tests require `client/.env` to be populated (Supabase URL + publishable key) so the React app renders. Copy `client/.env.example` → `client/.env` and fill in the values before running.
-
-The Playwright MCP server is also wired into `.mcp.json` so Claude Code agents can drive the browser directly for exploratory testing and QA automation.
-
----
-
-## How Gmail sync works
-
-InterviewerOS never stores your Google access token. When you sign in with Google, Supabase issues you a session that includes a short-lived `provider_token` — a read-only Gmail access token. When you trigger a sync, the frontend passes that token to the backend, the backend calls the Gmail API to fetch recent job-related emails, parses them, writes the results to Supabase, and discards the token. Your Gmail credentials never leave the current session.
-
-The sync searches the inbox, Spam, and Trash folders. Recruiter emails frequently land in Spam or get deleted before you see them — searching those folders catches messages you may have missed. The Gmail query matches patterns like "thank you for applying", "interview invitation", "we'd like to schedule", and "unfortunately we've decided to move forward with other candidates".
-
-Matched emails are grouped by company. Each thread is parsed into a pipeline card showing the current stage, the most recent communication, and a computed next action. Re-syncing is safe — already-imported emails are deduped by Gmail message ID, so you never get duplicate cards.
+Tests require `client/.env` to be populated (Supabase URL + publishable key). Copy `client/.env.example` → `client/.env` and fill in the values before running.
 
 ---
 
 ## API overview
 
-The backend exposes a JSON REST API at `http://localhost:3001/api`. All endpoints except the Gmail sync require a Supabase Bearer token in the `Authorization` header.
+All endpoints require a Supabase Bearer token in the `Authorization` header except where noted.
 
 | Method | Path | What it does |
 |--------|------|--------------|
@@ -223,7 +209,13 @@ The backend exposes a JSON REST API at `http://localhost:3001/api`. All endpoint
 | `POST` | `/api/applications` | Create an application manually |
 | `PUT` | `/api/applications/:id` | Update stage, notes, or other fields |
 | `DELETE` | `/api/applications/:id` | Delete an application |
-| `POST` | `/api/applications/parse-email` | Parse pasted email text, return pre-filled fields |
+| `POST` | `/api/applications/parse-email` | Parse pasted email text, return pre-filled fields with confidence scores |
+| `GET` | `/api/applications/:id/activity` | Return activity log for an application |
+| `GET` | `/api/applications/:id/prep` | Get interview prep notes and checklist |
+| `PUT` | `/api/applications/:id/prep` | Upsert interview prep |
+| `GET` | `/api/resumes` | List user's saved resumes |
+| `POST` | `/api/resumes` | Create a resume record |
+| `DELETE` | `/api/resumes/:id` | Delete a resume |
 
 ---
 
@@ -231,42 +223,57 @@ The backend exposes a JSON REST API at `http://localhost:3001/api`. All endpoint
 
 ```
 intervieweros/
-├── server/                 ← Express API
-│   ├── index.js            entry point (port 3001)
+├── server/                     ← Express API (port 3001)
+│   ├── index.js                entry point + CORS config
 │   ├── middleware/
-│   │   └── auth.js         JWT verification against Supabase JWKS
+│   │   └── auth.js             JWT verification against Supabase JWKS
 │   ├── routes/
-│   │   ├── gmail.js        sync and last-synced endpoints
-│   │   └── applications.js CRUD + parse-email
+│   │   ├── gmail.js            sync + last-synced endpoints
+│   │   ├── applications.js     CRUD + parse-email + activity log
+│   │   ├── resumes.js          resume CRUD
+│   │   └── prep.js             interview prep upsert/get
 │   ├── lib/
-│   │   ├── parseEmail.js   regex-based email parser
-│   │   └── computeFields.js next_action and stale derivation
+│   │   ├── parseEmail.js       5-stage regex parser with per-field confidence scoring
+│   │   └── computeFields.js    next_action and stale derivation (computed at read time)
 │   ├── migrations/
-│   │   └── 001_initial_schema.sql
-│   └── seed.js             create tables + demo data
+│   │   ├── 001_initial_schema.sql
+│   │   ├── 002_email_preview_activity.sql   email_subject, email_snippet, activity_log table
+│   │   └── 003_resume_interview_prep.sql    resumes, interview_prep tables
+│   └── seed.js                 create tables + demo data
 │
-├── client/                 ← React + Vite app
+├── client/                     ← React + Vite app
 │   ├── src/
+│   │   ├── hooks/
+│   │   │   ├── useFuseSearch.js   Fuse.js fuzzy search hook
+│   │   │   └── useNotifications.js  local notification state
 │   │   ├── lib/
-│   │   │   ├── supabase.js Supabase browser client
-│   │   │   └── api.js      fetch helpers with auth header
+│   │   │   ├── supabase.js     Supabase browser client
+│   │   │   └── api.js          fetch helpers with auth header
 │   │   ├── context/
 │   │   │   └── SessionContext.jsx
 │   │   ├── auth/
 │   │   │   └── ProtectedRoute.jsx
 │   │   ├── pages/
 │   │   │   ├── Login.jsx
-│   │   │   └── Pipeline.jsx
+│   │   │   └── Pipeline.jsx    Kanban board + all state management
 │   │   └── components/
-│   │       ├── ApplicationModal.jsx
+│   │       ├── AppSidebar.jsx          left navigation sidebar
+│   │       ├── ApplicationDrawer.jsx   right detail panel
+│   │       ├── ApplicationModal.jsx    add/edit modal
+│   │       ├── CommandPalette.jsx      Cmd+K palette
+│   │       ├── CompanyAvatar.jsx       initials + logo.dev avatar
+│   │       ├── MetricsStrip.jsx        pipeline summary stats
+│   │       ├── NotificationCenter.jsx  bell + notification dropdown
+│   │       ├── SearchDropdown.jsx      live fuzzy search results
+│   │       ├── Logo.jsx
 │   │       └── ErrorBoundary.jsx
 │   └── index.html
 │
-├── tests/                  ← Playwright E2E tests
+├── tests/                      ← Playwright E2E tests
 │   └── smoke.spec.js
 ├── playwright.config.js
 │
-└── docs/                   ← generated spec files
+└── docs/
     ├── scope.md
     ├── prd.md
     ├── decisions.md
@@ -278,15 +285,15 @@ intervieweros/
 
 ## Troubleshooting
 
-**Sign in with Google does nothing.** The Supabase Google provider is not configured. Go to your Supabase dashboard → Authentication → Providers → Google and enable it with your Client ID and Client Secret.
+**Sign in with Google does nothing.** The Supabase Google provider is not configured. Go to Supabase dashboard → Authentication → Providers → Google and enable it.
 
-**Gmail sync returns 503.** The Google access token in the session has expired. Sign out and sign back in to get a fresh token, then sync again.
+**Gmail sync returns 503.** The Google access token has expired. Sign out and back in to get a fresh token.
 
-**Pipeline shows "Could not load your pipeline."** The backend is not running or `server/.env` is missing. Start `node index.js` in `server/` and confirm all five env vars are present.
+**Pipeline shows "Could not load your pipeline."** The backend is not running or `server/.env` is missing.
 
-**`node seed.js` fails with "relation does not exist".** The `DATABASE_URL` is incorrect. Use the Session mode URI (port 5432) from Supabase → Settings → Database → Connection string.
+**`node seed.js` fails with "relation does not exist".** The `DATABASE_URL` is incorrect. Use the Session mode URI (port 5432) from Supabase → Settings → Database.
 
-**401 on all API calls.** The Supabase session token isn't being sent or has expired. Check that `client/.env` has the correct `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. Sign out and back in.
+**401 on all API calls.** Check that `client/.env` has the correct `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. Sign out and back in.
 
 ---
 
