@@ -246,14 +246,15 @@ router.post('/', requireAuth, async (req, res) => {
     }
 
     // Log created activity (best-effort — don't block response on failure)
-    supabase.from('activity_log').insert({
-      user_id: req.user.id,
-      application_id: data.id,
-      action: 'created',
-      metadata: { source: 'manual' },
-    }).catch((logErr) => {
-      console.warn('Activity log insert failed (POST /api/applications):', logErr.message);
-    });
+    ;(async () => {
+      const { error: logErr } = await supabase.from('activity_log').insert({
+        user_id: req.user.id,
+        application_id: data.id,
+        action: 'created',
+        metadata: { source: 'manual' },
+      });
+      if (logErr) console.warn('Activity log insert failed (POST /api/applications):', logErr.message);
+    })();
 
     return res.status(201).json({ application: formatApplication(data) });
   } catch (err) {
@@ -395,14 +396,15 @@ router.put('/:id', requireAuth, async (req, res) => {
       activityAction = 'notes_updated';
     }
 
-    supabase.from('activity_log').insert({
-      user_id: req.user.id,
-      application_id: req.params.id,
-      action: activityAction,
-      metadata: activityMetadata,
-    }).catch((logErr) => {
-      console.warn('Activity log insert failed (PUT /api/applications/:id):', logErr.message);
-    });
+    ;(async () => {
+      const { error: logErr } = await supabase.from('activity_log').insert({
+        user_id: req.user.id,
+        application_id: req.params.id,
+        action: activityAction,
+        metadata: activityMetadata,
+      });
+      if (logErr) console.warn('Activity log insert failed (PUT /api/applications/:id):', logErr.message);
+    })();
 
     return res.status(200).json({ application: formatApplication(data) });
   } catch (err) {
