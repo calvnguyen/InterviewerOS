@@ -92,6 +92,53 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 // -----------------------------------------------------------------------
+// GET /api/applications/:id/activity
+// Must be registered BEFORE /:id so Express does not swallow "activity"
+// as a dynamic segment value.
+// -----------------------------------------------------------------------
+router.get('/:id/activity', requireAuth, async (req, res) => {
+  try {
+    // Verify ownership of the application
+    const { data: existing, error: fetchErr } = await supabase
+      .from('applications')
+      .select('id')
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (fetchErr || !existing) {
+      return res.status(404).json({
+        error: 'not_found',
+        message: 'Application not found.',
+      });
+    }
+
+    const { data, error } = await supabase
+      .from('activity_log')
+      .select('id, action, metadata, created_at')
+      .eq('application_id', req.params.id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.error('GET /api/applications/:id/activity db error:', error.message);
+      return res.status(500).json({
+        error: 'db_error',
+        message: 'Could not load activity.',
+      });
+    }
+
+    return res.status(200).json({ activity: data || [] });
+  } catch (err) {
+    console.error('GET /api/applications/:id/activity unexpected error:', err.message);
+    return res.status(500).json({
+      error: 'db_error',
+      message: 'Could not load activity.',
+    });
+  }
+});
+
+// -----------------------------------------------------------------------
 // GET /api/applications/:id
 // -----------------------------------------------------------------------
 router.get('/:id', requireAuth, async (req, res) => {
@@ -198,6 +245,16 @@ router.post('/', requireAuth, async (req, res) => {
       });
     }
 
+    // Log created activity (best-effort — don't block response on failure)
+    supabase.from('activity_log').insert({
+      user_id: req.user.id,
+      application_id: data.id,
+      action: 'created',
+      metadata: { source: 'manual' },
+    }).catch((logErr) => {
+      console.warn('Activity log insert failed (POST /api/applications):', logErr.message);
+    });
+
     return res.status(201).json({ application: formatApplication(data) });
   } catch (err) {
     console.error('POST /api/applications unexpected error:', err.message);
@@ -212,21 +269,23 @@ router.post('/', requireAuth, async (req, res) => {
 // PUT /api/applications/:id
 // -----------------------------------------------------------------------
 router.put('/:id', requireAuth, async (req, res) => {
-  // First check ownership
+  // Fetch existing record to check ownership and detect changes for activity log
+  let existing;
   try {
-    const { data: existing, error: fetchErr } = await supabase
+    const { data: existingData, error: fetchErr } = await supabase
       .from('applications')
-      .select('id')
+      .select('stage, notes')
       .eq('id', req.params.id)
       .eq('user_id', req.user.id)
       .single();
 
-    if (fetchErr || !existing) {
+    if (fetchErr || !existingData) {
       return res.status(404).json({
         error: 'not_found',
         message: 'Application not found.',
       });
     }
+    existing = existingData;
   } catch (err) {
     console.error('PUT /api/applications/:id ownership check error:', err.message);
     return res.status(500).json({
@@ -235,7 +294,7 @@ router.put('/:id', requireAuth, async (req, res) => {
     });
   }
 
-  const { company, role, stage, date_applied, notes } = req.body;
+  const { company, role, stage, date_applied, notes, resume_id } = req.body;
   const updates = {};
 
   if (company !== undefined) {
@@ -300,6 +359,11 @@ router.put('/:id', requireAuth, async (req, res) => {
     updates.notes = notes;
   }
 
+  // resume_id may be a UUID string or null (to clear)
+  if (resume_id !== undefined) {
+    updates.resume_id = resume_id || null;
+  }
+
   updates.updated_at = new Date().toISOString();
 
   try {
@@ -318,6 +382,27 @@ router.put('/:id', requireAuth, async (req, res) => {
         message: 'Could not update application.',
       });
     }
+
+    // Determine what changed and log appropriate activity (best-effort)
+    const { stage: reqStage, notes: reqNotes } = req.body;
+    let activityAction = 'updated';
+    let activityMetadata = {};
+
+    if (reqStage !== undefined && reqStage !== existing.stage) {
+      activityAction = 'stage_changed';
+      activityMetadata = { from_stage: existing.stage, to_stage: reqStage };
+    } else if (reqNotes !== undefined && reqNotes !== existing.notes) {
+      activityAction = 'notes_updated';
+    }
+
+    supabase.from('activity_log').insert({
+      user_id: req.user.id,
+      application_id: req.params.id,
+      action: activityAction,
+      metadata: activityMetadata,
+    }).catch((logErr) => {
+      console.warn('Activity log insert failed (PUT /api/applications/:id):', logErr.message);
+    });
 
     return res.status(200).json({ application: formatApplication(data) });
   } catch (err) {

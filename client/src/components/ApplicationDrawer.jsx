@@ -1,6 +1,15 @@
+import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import CompanyAvatar from './CompanyAvatar'
 import { Button } from '@/components/ui/button'
+import {
+  getApplicationActivity,
+  getResumes,
+  createResume,
+  getInterviewPrep,
+  upsertInterviewPrep,
+  updateApplication,
+} from '../lib/api.js'
 
 const STAGE_LABELS = {
   applied: 'Applied',
@@ -38,8 +47,103 @@ function getDomainFromEmail(email) {
   return match ? match[1] : null
 }
 
+function relativeTime(ts) {
+  const diff = Date.now() - new Date(ts).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  return `${Math.floor(hrs / 24)}d ago`
+}
+
+function labelFor(entry) {
+  switch (entry.action) {
+    case 'created':
+      return 'Application added'
+    case 'stage_changed':
+      return `Moved to ${(entry.metadata?.to_stage || '').replace('_', ' ')}`
+    case 'notes_updated':
+      return 'Notes updated'
+    case 'gmail_imported':
+      return 'Imported from Gmail'
+    case 'updated':
+      return 'Application updated'
+    default:
+      return entry.action
+  }
+}
+
 export default function ApplicationDrawer({ app, onClose, onEdit, onDelete, onStageChange }) {
   const isOpen = !!app
+  const [activity, setActivity] = useState([])
+  const [activityLoading, setActivityLoading] = useState(false)
+
+  // Resume state
+  const [resumes, setResumes] = useState([])
+  const [selectedResumeId, setSelectedResumeId] = useState(app?.resume_id || null)
+
+  // Interview prep state
+  const [prep, setPrep] = useState(null)
+  const [prepLoading, setPrepLoading] = useState(false)
+
+  useEffect(() => {
+    if (!app) return
+    setActivityLoading(true)
+    getApplicationActivity(app.id)
+      .then(data => setActivity(data.activity || []))
+      .catch(() => setActivity([]))
+      .finally(() => setActivityLoading(false))
+  }, [app?.id])
+
+  // Sync selectedResumeId when the app changes
+  useEffect(() => {
+    setSelectedResumeId(app?.resume_id || null)
+  }, [app?.id, app?.resume_id])
+
+  // Fetch resumes on mount
+  useEffect(() => {
+    getResumes().then(d => setResumes(d.resumes || [])).catch(() => {})
+  }, [])
+
+  // Fetch prep when app is in interview/offer stage
+  useEffect(() => {
+    if (!app || !['interview', 'offer'].includes(app.stage)) {
+      setPrep(null)
+      return
+    }
+    setPrepLoading(true)
+    getInterviewPrep(app.id)
+      .then(d => setPrep(d.prep || { notes: '', checklist: [] }))
+      .catch(() => setPrep({ notes: '', checklist: [] }))
+      .finally(() => setPrepLoading(false))
+  }, [app?.id, app?.stage])
+
+  function savePrepNotes(notes) {
+    const updated = { ...(prep || {}), notes }
+    setPrep(updated)
+    upsertInterviewPrep(app.id, updated)
+  }
+
+  function toggleChecklistItem(itemId) {
+    const updated = {
+      ...(prep || {}),
+      checklist: (prep?.checklist || []).map(i =>
+        i.id === itemId ? { ...i, done: !i.done } : i
+      ),
+    }
+    setPrep(updated)
+    upsertInterviewPrep(app.id, updated)
+  }
+
+  function addChecklistItem() {
+    const text = window.prompt('Add checklist item:')
+    if (!text?.trim()) return
+    const item = { id: crypto.randomUUID(), text: text.trim(), done: false }
+    const updated = { ...(prep || {}), checklist: [...(prep?.checklist || []), item] }
+    setPrep(updated)
+    upsertInterviewPrep(app.id, updated)
+  }
 
   return (
     <>
@@ -130,13 +234,90 @@ export default function ApplicationDrawer({ app, onClose, onEdit, onDelete, onSt
                 )}
               </section>
 
+              {/* Resume Used */}
+              <section>
+                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Resume Used</h3>
+                <select
+                  className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700"
+                  value={selectedResumeId || ''}
+                  onChange={e => {
+                    setSelectedResumeId(e.target.value || null)
+                    updateApplication(app.id, { resume_id: e.target.value || null })
+                  }}
+                >
+                  <option value="">No resume selected</option>
+                  {resumes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </select>
+                <button
+                  className="mt-1 text-xs text-indigo-600 hover:text-indigo-800"
+                  onClick={() => {
+                    const name = window.prompt('Resume name (e.g. "Software Engineer Resume v2"):')
+                    if (!name?.trim()) return
+                    createResume({ name: name.trim() }).then(d => setResumes(prev => [d.resume, ...prev]))
+                  }}
+                >
+                  + Add resume
+                </button>
+              </section>
+
+              {/* Interview Prep — only shown when stage is interview or offer */}
+              {['interview', 'offer'].includes(app.stage) && (
+                <section>
+                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Interview Prep</h3>
+                  {prepLoading ? (
+                    <p className="text-sm text-slate-400 italic">Loading...</p>
+                  ) : (
+                    <>
+                      <textarea
+                        className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 resize-none text-slate-700 placeholder:text-slate-400"
+                        rows={3}
+                        placeholder="Notes, questions to ask, things to research..."
+                        value={prep?.notes || ''}
+                        onChange={e => savePrepNotes(e.target.value)}
+                      />
+                      <div className="mt-2 space-y-1.5">
+                        {(prep?.checklist || []).map(item => (
+                          <label key={item.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={item.done}
+                              onChange={() => toggleChecklistItem(item.id)}
+                              className="rounded"
+                            />
+                            <span className={item.done ? 'line-through text-slate-400' : 'text-slate-700'}>
+                              {item.text}
+                            </span>
+                          </label>
+                        ))}
+                        <button
+                          className="text-xs text-indigo-600 hover:text-indigo-800 mt-1"
+                          onClick={addChecklistItem}
+                        >
+                          + Add item
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </section>
+              )}
+
               {/* Email */}
               <section>
                 <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Email</h3>
-                {app.email_subject ? (
-                  <div className="bg-slate-50 rounded-lg px-3.5 py-2.5 text-sm text-slate-700 border border-slate-100">
-                    <span className="text-slate-400 text-xs block mb-0.5">Subject</span>
-                    {app.email_subject}
+                {app.email_subject || app.email_snippet ? (
+                  <div className="bg-slate-50 rounded-lg px-3.5 py-2.5 text-sm text-slate-700 border border-slate-100 space-y-2">
+                    {app.email_subject && (
+                      <div>
+                        <span className="text-slate-400 text-xs block mb-0.5">Subject</span>
+                        <span>{app.email_subject}</span>
+                      </div>
+                    )}
+                    {app.email_snippet && (
+                      <div>
+                        <span className="text-slate-400 text-xs block mb-0.5">Preview</span>
+                        <span className="text-slate-600 leading-relaxed">{app.email_snippet}</span>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <p className="text-sm text-slate-400 italic">No email preview available</p>
@@ -146,7 +327,20 @@ export default function ApplicationDrawer({ app, onClose, onEdit, onDelete, onSt
               {/* Activity */}
               <section>
                 <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Activity</h3>
-                <p className="text-sm text-slate-400 italic">Timeline coming soon</p>
+                <div className="space-y-2">
+                  {activity.map(entry => (
+                    <div key={entry.id} className="flex gap-3 text-sm">
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-300 mt-1.5 shrink-0" />
+                      <div>
+                        <span className="text-slate-700">{labelFor(entry)}</span>
+                        <span className="text-slate-400 ml-2 text-xs">{relativeTime(entry.created_at)}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {activity.length === 0 && !activityLoading && (
+                    <p className="text-xs text-slate-400">No activity yet</p>
+                  )}
+                </div>
               </section>
             </div>
 

@@ -68,3 +68,27 @@ export async function getLastSynced() {
 export async function syncGmail(googleToken) {
   return request('POST', '/gmail/sync', { google_token: googleToken })
 }
+
+export async function getApplicationActivity(id) {
+  return request('GET', `/applications/${id}/activity`)
+}
+
+export async function getResumes() {
+  return request('GET', '/resumes')
+}
+
+export async function createResume(data) {
+  return request('POST', '/resumes', data)
+}
+
+export async function deleteResume(id) {
+  return request('DELETE', `/resumes/${id}`)
+}
+
+export async function getInterviewPrep(applicationId) {
+  return request('GET', `/applications/${applicationId}/prep`)
+}
+
+export async function upsertInterviewPrep(applicationId, data) {
+  return request('PUT', `/applications/${applicationId}/prep`, data)
+}

@@ -151,6 +151,8 @@ router.post('/sync', requireAuth, async (req, res) => {
       date_applied: internalDate.slice(0, 10),
       notes: null,
       gmail_message_id: msg.id,
+      email_subject: subject || null,
+      email_snippet: snippet || null,
     };
 
     try {
@@ -165,6 +167,16 @@ router.post('/sync', requireAuth, async (req, res) => {
         skipped++;
         continue;
       }
+
+      // Log gmail_imported activity (best-effort — don't block on failure)
+      supabase.from('activity_log').insert({
+        user_id: req.user.id,
+        application_id: created.id,
+        action: 'gmail_imported',
+        metadata: { email_subject: subject },
+      }).catch((logErr) => {
+        console.warn(`Activity log insert failed for message ${msg.id}:`, logErr.message);
+      });
 
       imported++;
       importedApplications.push(formatApplication(created));

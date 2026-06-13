@@ -31,6 +31,8 @@ const cors = require('cors');
 
 const applicationsRouter = require('./routes/applications');
 const gmailRouter = require('./routes/gmail');
+const resumesRouter = require('./routes/resumes');
+const prepRouter = require('./routes/prep');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -56,6 +58,10 @@ app.use(express.json());
 // -- Routes --
 app.use('/api/gmail', gmailRouter);
 app.use('/api/applications', applicationsRouter);
+app.use('/api/resumes', resumesRouter);
+// prepRouter mounts on /api/applications because its routes are /:id/prep
+// Mounted AFTER applicationsRouter — /:id/prep won't conflict with /:id
+app.use('/api/applications', prepRouter);
 
 // -- Health check --
 app.get('/api/health', (req, res) => {
